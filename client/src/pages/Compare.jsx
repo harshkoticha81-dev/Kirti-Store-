@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useCompare } from '../context/CompareContext';
 import { useCart } from '../context/CartContext';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../utils/imageUtils';
 import api from '../services/api';
 
 const Compare = () => {
@@ -180,9 +181,13 @@ const Compare = () => {
 
                       <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-surface-muted/30 border border-surface-border">
                         <img
-                          src={product.images?.[0] || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=400&q=80'}
+                          src={getSafeProductImageUrl(product.images?.[0], product.categoryName || product.name)}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = getApplianceFallbackImage(product.categoryName || product.name);
+                          }}
                         />
                         {discount && (
                           <span className="absolute top-2 left-2 px-2 py-0.5 bg-accent text-white font-black text-[10px] rounded-lg">
@@ -351,9 +356,13 @@ const Compare = () => {
                 <div key={product._id} className="py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <img
-                      src={product.images?.[0] || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=100&q=80'}
+                      src={getSafeProductImageUrl(product.images?.[0], product.categoryName || product.name)}
                       alt={product.name}
                       className="w-12 h-12 rounded-xl object-cover border border-surface-border flex-shrink-0"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = getApplianceFallbackImage(product.categoryName || product.name);
+                      }}
                     />
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-primary truncate">{product.name}</p>

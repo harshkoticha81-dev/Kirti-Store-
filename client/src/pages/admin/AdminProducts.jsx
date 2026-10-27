@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 
 // Quick 1-Click Appliance Presets for instant Category-wise creation
 const APPLIANCE_PRESETS = [
@@ -728,9 +729,13 @@ const AdminProducts = () => {
                       <td className="py-3 px-6">
                         <div className="flex items-center gap-3">
                           <img
-                            src={product.images?.[0] || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=100&q=80'}
+                            src={getSafeProductImageUrl(product.images?.[0], product.categoryName || product.name)}
                             alt=""
                             className="w-12 h-12 rounded-xl object-cover bg-slate-950 flex-shrink-0 border border-slate-800"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = getApplianceFallbackImage(product.categoryName || product.name);
+                            }}
                           />
                           <div className="overflow-hidden">
                             <p className="font-bold text-white truncate max-w-xs">{product.name}</p>
@@ -1271,9 +1276,13 @@ const AdminProducts = () => {
             {/* Product Summary */}
             <div className="flex items-center gap-3 p-3 bg-slate-950/60 rounded-2xl border border-slate-800">
               <img
-                src={priceModalProduct.images?.[0] || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=100&q=80'}
+                src={getSafeProductImageUrl(priceModalProduct.images?.[0], priceModalProduct.categoryName || priceModalProduct.name)}
                 alt=""
                 className="w-12 h-12 rounded-xl object-cover border border-slate-800"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = getApplianceFallbackImage(priceModalProduct.categoryName || priceModalProduct.name);
+                }}
               />
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-white text-xs truncate">{priceModalProduct.name}</p>

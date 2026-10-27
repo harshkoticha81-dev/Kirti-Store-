@@ -27,6 +27,7 @@ import ProductCard from '../components/product/ProductCard';
 import PincodeChecker from '../components/product/PincodeChecker';
 import ProductQA from '../components/product/ProductQA';
 import { isBigAppliance } from '../utils/shippingCalculator';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../utils/imageUtils';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -181,9 +182,13 @@ const ProductDetails = () => {
           {/* Main Large Image */}
           <div className="aspect-square w-full rounded-3xl bg-white border border-surface-border overflow-hidden relative shadow-premium">
             <img
-              src={product.images?.[selectedImage] || product.images?.[0]}
+              src={getSafeProductImageUrl(product.images?.[selectedImage] || product.images?.[0], product.categoryName || product.name)}
               alt={product.name}
               className="w-full h-full object-cover transition-all duration-300"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = getApplianceFallbackImage(product.categoryName || product.name);
+              }}
             />
             {discountPercent && (
               <span className="absolute top-4 left-4 px-3 py-1.5 bg-accent text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md">
@@ -224,7 +229,15 @@ const ProductDetails = () => {
                     selectedImage === idx ? 'border-secondary shadow-md scale-95' : 'border-surface-border opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={getSafeProductImageUrl(img, product.categoryName || product.name)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = getApplianceFallbackImage(product.categoryName || product.name);
+                    }}
+                  />
                 </button>
               ))}
             </div>

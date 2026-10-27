@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../utils/imageUtils';
 
 const Wishlist = () => {
   const { wishlist, toggleWishlist } = useWishlist();
@@ -47,9 +48,13 @@ const Wishlist = () => {
               <div className="relative aspect-square overflow-hidden bg-surface-muted/30">
                 <Link to={`/product/${product.slug || product._id}`}>
                   <img
-                    src={product.images?.[0] || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80'}
+                    src={getSafeProductImageUrl(product.images?.[0], product.categoryName || product.name)}
                     alt={product.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = getApplianceFallbackImage(product.categoryName || product.name);
+                    }}
                   />
                 </Link>
                 <button

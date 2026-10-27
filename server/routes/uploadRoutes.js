@@ -3,11 +3,30 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const upload = require('../middleware/uploadMiddleware');
+const UploadedFile = require('../models/UploadedFile');
 const { protect, adminOnly, optionalAuth } = require('../middleware/authMiddleware');
+
+// Helper to persist files into MongoDB Atlas so Render ephemeral restarts never delete images
+const persistToDatabase = async (filename, mimetype, buffer, size) => {
+  try {
+    await UploadedFile.findOneAndUpdate(
+      { filename },
+      {
+        filename,
+        contentType: mimetype || 'image/webp',
+        data: buffer,
+        size: size || buffer.length
+      },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    console.error(`[Upload DB Persist Warning]: ${err.message}`);
+  }
+};
 
 // Upload product image (Admin only)
 router.post('/', protect, adminOnly, (req, res, next) => {
-  upload.any()(req, res, (err) => {
+  upload.any()(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -23,6 +42,13 @@ router.post('/', protect, adminOnly, (req, res, next) => {
       });
     }
 
+    try {
+      const buffer = fs.readFileSync(file.path);
+      await persistToDatabase(file.filename, file.mimetype, buffer, file.size);
+    } catch (e) {
+      console.error('Error saving image buffer to DB:', e.message);
+    }
+
     const imageUrl = `/uploads/${file.filename}`;
 
     res.status(200).json({
@@ -36,7 +62,7 @@ router.post('/', protect, adminOnly, (req, res, next) => {
 
 // Upload UPI Payment Screenshot / Receipt (Multipart form-data)
 router.post('/receipt', optionalAuth, (req, res, next) => {
-  upload.any()(req, res, (err) => {
+  upload.any()(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         success: false,
@@ -52,6 +78,13 @@ router.post('/receipt', optionalAuth, (req, res, next) => {
       });
     }
 
+    try {
+      const buffer = fs.readFileSync(file.path);
+      await persistToDatabase(file.filename, file.mimetype, buffer, file.size);
+    } catch (e) {
+      console.error('Error saving receipt buffer to DB:', e.message);
+    }
+
     const imageUrl = `/uploads/${file.filename}`;
 
     res.status(200).json({
@@ -64,7 +97,7 @@ router.post('/receipt', optionalAuth, (req, res, next) => {
 });
 
 // Upload UPI Payment Screenshot / Receipt (Base64 clipboard paste / fallback)
-router.post('/receipt-base64', optionalAuth, (req, res, next) => {
+router.post('/receipt-base64', optionalAuth, async (req, res, next) => {
   try {
     const { imageBase64 } = req.body;
     if (!imageBase64 || typeof imageBase64 !== 'string') {
@@ -100,6 +133,8 @@ router.post('/receipt-base64', optionalAuth, (req, res, next) => {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
     fs.writeFileSync(path.join(uploadDir, filename), buffer);
+
+    await persistToDatabase(filename, `image/${ext}`, buffer, buffer.length);
 
     const imageUrl = `/uploads/${filename}`;
     res.status(200).json({

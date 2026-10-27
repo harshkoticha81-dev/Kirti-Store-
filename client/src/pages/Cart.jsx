@@ -4,6 +4,7 @@ import { ShoppingBag, ArrowRight, Trash2, Plus, Minus, ShieldCheck, Truck, Chevr
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { isBigAppliance } from '../utils/shippingCalculator';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../utils/imageUtils';
 
 const Cart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
@@ -117,9 +118,13 @@ const Cart = () => {
             {cart.items.map((item) => (
               <div key={item._id} className="py-6 first:pt-0 last:pb-0 flex flex-col sm:flex-row gap-6 items-center">
                 <img
-                  src={item.product?.image || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=200&q=80'}
+                  src={getSafeProductImageUrl(item.product?.image, item.product?.categoryName || item.product?.name)}
                   alt={item.product?.name}
                   className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-2xl border border-surface-border flex-shrink-0"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = getApplianceFallbackImage(item.product?.categoryName || item.product?.name);
+                  }}
                 />
 
                 <div className="flex-1 min-w-0 space-y-1 text-center sm:text-left">

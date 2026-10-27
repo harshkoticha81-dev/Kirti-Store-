@@ -65,7 +65,41 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static uploads folder
+// Persistent Static Uploads Handler (checks local disk, falls back to MongoDB Atlas, and provides guaranteed fallback)
+app.get('/uploads/:filename', async (req, res, next) => {
+  const filename = req.params.filename;
+  const localPath = path.join(__dirname, 'public/uploads', filename);
+
+  // 1. If exists on local disk, serve directly
+  if (fs.existsSync(localPath)) {
+    return res.sendFile(localPath);
+  }
+
+  // 2. If missing from disk (e.g. Render free tier restarted), retrieve from MongoDB Atlas
+  try {
+    const UploadedFile = require('./models/UploadedFile');
+    const file = await UploadedFile.findOne({ filename });
+    if (file && file.data) {
+      // Re-populate disk cache so subsequent requests are lightning fast
+      try {
+        const uploadDir = path.join(__dirname, 'public/uploads');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+        fs.writeFileSync(localPath, file.data);
+      } catch (cacheErr) {}
+
+      res.set('Content-Type', file.contentType || 'image/webp');
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(file.data);
+    }
+  } catch (dbErr) {
+    console.error('[Upload Fetch Error from MongoDB]:', dbErr.message);
+  }
+
+  // 3. Guaranteed Safe Fallback: NEVER show broken image or 404
+  res.redirect('https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80');
+});
+
+// Fallback static middleware
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Root endpoint

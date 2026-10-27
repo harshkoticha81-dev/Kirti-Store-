@@ -23,6 +23,7 @@ import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useCompare } from '../../context/CompareContext';
 import NotificationBell from './NotificationBell';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 import api from '../../services/api';
 
 const Navbar = () => {
@@ -160,9 +161,13 @@ const Navbar = () => {
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <img
-                                src={product.images?.[0] || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=100&q=80'}
+                                src={getSafeProductImageUrl(product.images?.[0], product.categoryName || product.name)}
                                 alt={product.name}
                                 className="w-10 h-10 object-cover rounded-lg border border-surface-border flex-shrink-0"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = getApplianceFallbackImage(product.categoryName || product.name);
+                                }}
                               />
                               <div className="min-w-0">
                                 <p className="text-xs font-bold text-primary truncate">{product.name}</p>
