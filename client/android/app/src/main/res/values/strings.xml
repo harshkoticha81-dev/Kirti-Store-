@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kirti Store</string>
+    <string name="title_activity_main">Kirti Store</string>
+    <string name="package_name">com.kirtistore.app</string>
+    <string name="custom_url_scheme">com.kirtistore.app</string>
+</resources>

@@ -1,0 +1,33 @@
+{
+  "name": "kirti-store-monorepo",
+  "version": "1.0.0",
+  "description": "Kirti Store - Premium Kitchen Appliances E-Commerce Platform",
+  "main": "server/server.js",
+  "scripts": {
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "dev": "concurrently --kill-others-on-fail \"npm run server\" \"npm run client\"",
+    "seed": "cd server && npm run seed",
+    "create-admin": "cd server && npm run create-admin",
+    "test:server": "cd server && npm test",
+    "build:client": "cd client && npm run build",
+    "mobile:sync": "cd client && npm run cap:sync",
+    "mobile:android": "cd client && npm run cap:open:android",
+    "mobile:ios": "cd client && npm run cap:open:ios"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "keywords": [
+    "ecommerce",
+    "kitchen-appliances",
+    "mern",
+    "kirti-store",
+    "react",
+    "node",
+    "mongodb"
+  ],
+  "author": "Kirti Store Team",
+  "license": "ISC"
+}
