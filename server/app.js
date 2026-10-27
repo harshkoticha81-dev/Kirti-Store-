@@ -27,22 +27,30 @@ app.use(helmet({
 }));
 
 // CORS Configuration
+const clientUrl = (process.env.CLIENT_URL || '').replace(/\/+$/, '');
 const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:5173',
+  clientUrl,
+  'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
   'capacitor://localhost',
   'https://localhost',
   'http://localhost',
   'ionic://localhost'
-];
+].filter(Boolean);
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    if (
+      !origin || 
+      allowedOrigins.includes(origin) || 
+      allowedOrigins.includes(origin.replace(/\/+$/, '')) ||
+      /\.vercel\.app$/.test(new URL(origin).hostname) ||
+      process.env.NODE_ENV !== 'production'
+    ) {
       callback(null, true);
     } else {
-      callback(new Error('CORS policy: Not allowed by CORS'));
+      callback(new Error(`CORS policy: Origin ${origin} not allowed`));
     }
   },
   credentials: true
