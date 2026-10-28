@@ -3,6 +3,7 @@ import api from '../services/api';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { calculateCartTransportation } from '../utils/shippingCalculator';
+import LoginPromptModal from '../components/common/LoginPromptModal';
 
 const CartContext = createContext(null);
 
@@ -19,6 +20,8 @@ export const CartProvider = ({ children }) => {
 
   const [cartOpen, setCartOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
+  const [loginPromptProduct, setLoginPromptProduct] = useState(null);
 
   // Recalculate local cart metrics using dynamic appliance transportation rules
   const computeCartTotals = (items) => {
@@ -79,78 +82,40 @@ export const CartProvider = ({ children }) => {
   }, [cart, isAuthenticated]);
 
   const addToCart = async (product, quantity = 1) => {
+    // 1. Login Validation: Customer MUST be logged in to add products to cart!
+    if (!isAuthenticated) {
+      setLoginPromptProduct(product);
+      setLoginPromptOpen(true);
+      showError('Please log in to add products to your cart.');
+      return false;
+    }
+
     const qty = Math.max(1, parseInt(quantity, 10));
 
-    // Validate stock
+    // 2. Validate stock
     if (product.stockQuantity <= 0) {
       showError(`Sorry, "${product.name}" is currently out of stock.`);
       return false;
     }
 
-    if (isAuthenticated) {
-      try {
-        setLoading(true);
-        const res = await api.post('/cart/items', {
-          productId: product._id,
-          quantity: qty,
-        });
-        if (res.data.success) {
-          setCart(res.data.cart);
-          setCartOpen(true);
-          success(`Added ${product.name} to cart!`);
-          return true;
-        }
-      } catch (err) {
-        const msg = err.response?.data?.message || 'Failed to add item to cart.';
-        showError(msg);
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Guest local cart
-      setCart((prev) => {
-        const existingIdx = prev.items.findIndex(
-          (i) => (i.product?._id || i.product) === product._id
-        );
-        let updatedItems = [...prev.items];
-
-        if (existingIdx > -1) {
-          const currentQty = updatedItems[existingIdx].quantity;
-          const newQty = currentQty + qty;
-          if (newQty > product.stockQuantity) {
-            showError(`Maximum available stock is ${product.stockQuantity}.`);
-            return prev;
-          }
-          updatedItems[existingIdx].quantity = newQty;
-          updatedItems[existingIdx].lineTotal = product.sellingPrice * newQty;
-        } else {
-          updatedItems.push({
-            _id: `guest_${Date.now()}`,
-            product: {
-              _id: product._id,
-              name: product.name,
-              slug: product.slug,
-              SKU: product.SKU,
-              sellingPrice: product.sellingPrice,
-              originalPrice: product.originalPrice,
-              stockQuantity: product.stockQuantity,
-              image: product.images?.[0] || '',
-              categoryName: product.categoryName,
-            },
-            quantity: qty,
-            lineTotal: product.sellingPrice * qty,
-            inStock: true,
-            maxAvailable: product.stockQuantity,
-          });
-        }
-
-        const newCart = computeCartTotals(updatedItems);
+    try {
+      setLoading(true);
+      const res = await api.post('/cart/items', {
+        productId: product._id,
+        quantity: qty,
+      });
+      if (res.data.success) {
+        setCart(res.data.cart);
         setCartOpen(true);
         success(`Added ${product.name} to cart!`);
-        return newCart;
-      });
-      return true;
+        return true;
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to add item to cart.';
+      showError(msg);
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -269,9 +234,18 @@ export const CartProvider = ({ children }) => {
         clearCart,
         fetchCart,
         syncLocalCartToServer,
+        openLoginPrompt: (prod) => {
+          setLoginPromptProduct(prod);
+          setLoginPromptOpen(true);
+        },
       }}
     >
       {children}
+      <LoginPromptModal
+        isOpen={loginPromptOpen}
+        onClose={() => setLoginPromptOpen(false)}
+        product={loginPromptProduct}
+      />
     </CartContext.Provider>
   );
 };
