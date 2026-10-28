@@ -101,8 +101,11 @@ const OtpLoginModal = ({ isOpen, onClose, product, onSuccess }) => {
   const setupRecaptcha = () => {
     if (!isFirebaseConfigured || !auth) return null;
     try {
+      const container = document.getElementById('recaptcha-container') || document.getElementById('otp-recaptcha-container');
+      if (!container) return null;
+
       if (!recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'otp-recaptcha-container', {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, container, {
           size: 'invisible',
           callback: () => {
             // reCAPTCHA solved
@@ -150,7 +153,13 @@ const OtpLoginModal = ({ isOpen, onClose, product, onSuccess }) => {
             return;
           }
         } catch (firebaseErr) {
-          console.warn('[Firebase SMS Fallback]:', firebaseErr.message);
+          console.error('[Firebase SMS Error]:', firebaseErr.code, firebaseErr.message);
+          if (recaptchaVerifierRef.current) {
+            try {
+              recaptchaVerifierRef.current.clear();
+            } catch (_) {}
+            recaptchaVerifierRef.current = null;
+          }
           // Fall through to server OTP engine
         }
       }
