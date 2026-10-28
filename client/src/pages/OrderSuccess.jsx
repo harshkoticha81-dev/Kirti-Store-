@@ -69,8 +69,8 @@ const OrderSuccess = () => {
       showError('Please upload a valid image file (JPG, PNG, or WebP).');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showError('Screenshot size exceeds 5MB limit.');
+    if (file.size > 15 * 1024 * 1024) {
+      showError('Screenshot size exceeds 15MB limit.');
       return;
     }
 

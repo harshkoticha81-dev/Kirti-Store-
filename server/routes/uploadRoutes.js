@@ -119,10 +119,10 @@ router.post('/receipt-base64', optionalAuth, async (req, res, next) => {
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, 'base64');
 
-    if (buffer.length > 5 * 1024 * 1024) {
+    if (buffer.length > 15 * 1024 * 1024) {
       return res.status(400).json({
         success: false,
-        message: 'Screenshot size exceeds 5MB limit.'
+        message: 'Screenshot size exceeds 15MB limit.'
       });
     }
 

@@ -264,8 +264,8 @@ const Checkout = () => {
       showError('Please upload a valid image file (JPG, PNG, WebP).');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showError('Screenshot size exceeds 5MB limit. Please choose a smaller file.');
+    if (file.size > 15 * 1024 * 1024) {
+      showError('Screenshot size exceeds 15MB limit. Please choose a smaller file.');
       return;
     }
     setScreenshotFile(file);
@@ -1709,7 +1709,7 @@ const Checkout = () => {
                               Upload Payment Screenshot
                             </span>
                             <span className="text-[10px] text-charcoal-light mt-0.5">
-                              Click to browse, drag & drop, or paste (Max 5MB)
+                              Click to browse, drag & drop, or paste (Max 15MB)
                             </span>
                           </label>
                         ) : (

@@ -166,8 +166,8 @@ const AdminProducts = () => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      showError('Image file size must be less than 5MB.');
+    if (file.size > 15 * 1024 * 1024) {
+      showError('Image file size must be less than 15MB.');
       return;
     }
 
@@ -1150,7 +1150,7 @@ const AdminProducts = () => {
                               Click to browse photo from computer, drive or storage
                             </p>
                             <p className="text-[10px] text-slate-400 mt-0.5">
-                              Supports PNG, JPG, JPEG, WEBP or SVG (Max 5MB)
+                              Supports PNG, JPG, JPEG, WEBP or SVG (Max 15MB)
                             </p>
                           </div>
                           {uploadedFileName && (
