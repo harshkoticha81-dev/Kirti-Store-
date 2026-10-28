@@ -13,7 +13,9 @@ import { WishlistProvider } from './context/WishlistContext';
 import { CompareProvider } from './context/CompareContext';
 import { NotificationProvider } from './context/NotificationContext';
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const googleClientId = 
+  import.meta.env.VITE_GOOGLE_CLIENT_ID || 
+  '334832415426-bponbhc0uqg34ffbl5iusrjvo21ouoi6.apps.googleusercontent.com';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
