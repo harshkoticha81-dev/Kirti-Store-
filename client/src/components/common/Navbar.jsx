@@ -28,7 +28,7 @@ import api from '../../services/api';
 
 const Navbar = () => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
-  const { cart, setCartOpen, openOtpLogin } = useCart();
+  const { cart, setCartOpen } = useCart();
   const { wishlist } = useWishlist();
   const { compareCount } = useCompare();
   const [searchTerm, setSearchTerm] = useState('');
@@ -349,12 +349,12 @@ const Navbar = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openOtpLogin()}
+                  <Link
+                    to="/login"
                     className="text-xs sm:text-sm font-semibold text-primary hover:text-secondary py-2 px-3 transition-colors"
                   >
                     Log In
-                  </button>
+                  </Link>
                   <Link
                     to="/register"
                     className="hidden sm:inline-flex text-xs sm:text-sm font-semibold bg-secondary hover:bg-secondary-700 text-white px-4 py-2 rounded-full transition-colors shadow-sm"
@@ -440,15 +440,13 @@ const Navbar = () => {
 
           {!isAuthenticated && (
             <div className="pt-2 border-t border-surface-border flex gap-2">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openOtpLogin();
-                }}
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
                 className="flex-1 py-2 text-center text-sm font-semibold border border-primary text-primary rounded-xl"
               >
                 Log In
-              </button>
+              </Link>
               <Link
                 to="/register"
                 onClick={() => setMobileMenuOpen(false)}

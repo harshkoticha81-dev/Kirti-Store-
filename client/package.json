@@ -27,7 +27,6 @@
     "axios": "^1.7.9",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
-    "firebase": "^13.1.0",
     "framer-motion": "^12.4.7",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.475.0",

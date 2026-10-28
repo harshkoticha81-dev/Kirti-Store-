@@ -90,43 +90,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const sendPhoneOtp = async (phone) => {
-    try {
-      const res = await api.post('/auth/otp/send', { phone });
-      if (res.data.success) {
-        success(res.data.message || 'OTP sent successfully to your mobile number.');
-        return { 
-          success: true, 
-          message: res.data.message, 
-          demoOtp: res.data.demoOtp 
-        };
-      }
-    } catch (err) {
-      const msg = err.response?.data?.message || 'Failed to send OTP. Please check your mobile number.';
-      showError(msg);
-      return { success: false, message: msg };
-    }
-  };
-
-  const verifyPhoneOtp = async ({ phone, otp, idToken }) => {
-    try {
-      const res = await api.post('/auth/otp/verify', { phone, otp, idToken });
-      if (res.data.success) {
-        const { token: authToken, user: authUser } = res.data;
-        setToken(authToken);
-        setUser(authUser);
-        localStorage.setItem('kirti_token', authToken);
-        localStorage.setItem('kirti_user', JSON.stringify(authUser));
-        success(`Welcome, ${authUser.name}!`);
-        return { success: true, user: authUser };
-      }
-    } catch (err) {
-      const msg = err.response?.data?.message || 'Invalid or expired OTP. Please try again.';
-      showError(msg);
-      return { success: false, message: msg };
-    }
-  };
-
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -161,8 +124,6 @@ export const AuthProvider = ({ children }) => {
         isAdmin: user?.role === 'admin',
         login,
         googleLogin,
-        sendPhoneOtp,
-        verifyPhoneOtp,
         register,
         logout,
         updateProfile,

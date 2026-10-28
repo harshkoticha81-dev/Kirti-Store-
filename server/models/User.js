@@ -35,8 +35,6 @@ const UserSchema = new mongoose.Schema({
   phone: {
     type: String,
     trim: true,
-    sparse: true,
-    index: true,
     default: ''
   },
   googleId: {
@@ -51,7 +49,7 @@ const UserSchema = new mongoose.Schema({
   passwordHash: {
     type: String,
     required: function() {
-      return !this.googleId && !this.phone;
+      return !this.googleId;
     },
     select: false
   },

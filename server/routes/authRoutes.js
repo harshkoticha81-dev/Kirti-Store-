@@ -9,17 +9,13 @@ const {
   updatePassword,
   forgotPassword,
   resetPassword,
-  googleAuth,
-  sendPhoneOtp,
-  verifyPhoneOtp
+  googleAuth
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register', register);
 router.post('/login', login);
 router.post('/google', googleAuth);
-router.post('/otp/send', sendPhoneOtp);
-router.post('/otp/verify', verifyPhoneOtp);
 router.post('/logout', logout);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
