@@ -468,6 +468,32 @@ const OtpLoginModal = ({ isOpen, onClose, product, onSuccess }) => {
               </button>
             </div>
 
+            {/* Verification Code Banner (when SMS gateway pending configuration) */}
+            {demoOtpHint && (
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between shadow-sm animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    <strong>Your OTP:</strong>{' '}
+                    <span className="font-mono font-bold tracking-widest text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-300 ml-1">
+                      {demoOtpHint}
+                    </span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const digits = demoOtpHint.split('');
+                    setOtpValues(digits);
+                    setTimeout(() => otpInputsRef.current[5]?.focus(), 50);
+                  }}
+                  className="text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1 rounded-lg transition-all active:scale-95 cursor-pointer"
+                >
+                  Autofill Code
+                </button>
+              </div>
+            )}
+
             {/* 6 Individual Digit Inputs */}
             <div className="flex justify-between gap-2" onPaste={handlePaste}>
               {otpValues.map((digit, idx) => (

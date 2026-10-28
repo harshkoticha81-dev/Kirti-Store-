@@ -476,12 +476,36 @@ exports.sendPhoneOtp = async (req, res, next) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000)
     });
 
-    console.log(`[SMS OTP Service]: 📲 OTP sent to ${normalizedPhone}: ${rawOtp} (Valid for 5 mins)`);
+    console.log(`[SMS OTP Service]: 📲 OTP generated for ${normalizedPhone}: ${rawOtp} (Valid for 5 mins)`);
 
+    // 1. Send via Fast2SMS if configured on backend
+    let smsSent = false;
+    if (process.env.FAST2SMS_API_KEY) {
+      try {
+        const pureMobile = normalizedPhone.replace('+91', '');
+        const response = await fetch(
+          `https://www.fast2sms.com/dev/bulkV2?authorization=${encodeURIComponent(process.env.FAST2SMS_API_KEY)}&variables_values=${rawOtp}&route=otp&numbers=${pureMobile}`
+        );
+        const f2sData = await response.json();
+        if (f2sData?.return) {
+          smsSent = true;
+          console.log(`[Fast2SMS]: ✅ SMS successfully delivered to ${normalizedPhone}`);
+        } else {
+          console.warn('[Fast2SMS]: ⚠️ Gateway response:', f2sData?.message);
+        }
+      } catch (smsErr) {
+        console.warn('[Fast2SMS]: ⚠️ Error:', smsErr.message);
+      }
+    }
+
+    // 2. Return response (if no real SMS service dispatched, include demoOtp for instant testing)
     res.status(200).json({
       success: true,
-      message: `OTP sent successfully to ${normalizedPhone.slice(0, 5)}*****${normalizedPhone.slice(-2)}.`,
-      ...(process.env.NODE_ENV !== 'production' && { demoOtp: rawOtp })
+      message: smsSent
+        ? `OTP sent via SMS to ${normalizedPhone.slice(0, 5)}*****${normalizedPhone.slice(-2)}.`
+        : `Verification code generated for ${normalizedPhone.slice(0, 5)}*****${normalizedPhone.slice(-2)}.`,
+      smsDelivered: smsSent,
+      ...(!smsSent && { demoOtp: rawOtp })
     });
   } catch (error) {
     console.error('[Send OTP Error]:', error);
