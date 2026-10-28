@@ -1474,9 +1474,13 @@ const AdminProducts = () => {
             {/* Target Product Preview Card */}
             <div className="flex items-center gap-3 p-3 bg-slate-950 rounded-2xl border border-slate-800">
               <img
-                src={deleteProductTarget.images?.[0] || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=100&q=80'}
+                src={getSafeProductImageUrl(deleteProductTarget.images?.[0], deleteProductTarget.categoryName || deleteProductTarget.name)}
                 alt=""
                 className="w-12 h-12 rounded-xl object-cover border border-slate-800"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = getApplianceFallbackImage(deleteProductTarget.categoryName || deleteProductTarget.name);
+                }}
               />
               <div className="min-w-0 flex-1 text-xs">
                 <p className="font-bold text-white truncate">{deleteProductTarget.name}</p>

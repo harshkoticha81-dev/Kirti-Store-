@@ -37,6 +37,7 @@ import {
   Legend
 } from 'recharts';
 import api from '../../services/api';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
@@ -429,9 +430,13 @@ const DashboardOverview = () => {
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
                     <img
-                      src={prod.images?.[0]}
+                      src={getSafeProductImageUrl(prod.images?.[0], prod.categoryName || prod.name)}
                       alt=""
                       className="w-10 h-10 rounded-xl object-cover bg-slate-900 flex-shrink-0"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = getApplianceFallbackImage(prod.categoryName || prod.name);
+                      }}
                     />
                     <div className="overflow-hidden">
                       <p className="font-bold text-white truncate">{prod.name}</p>
@@ -514,7 +519,15 @@ const DashboardOverview = () => {
                 {selectedOrder.items?.map((item, i) => (
                   <div key={i} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <img src={item.image} alt="" className="w-10 h-10 rounded-lg object-cover bg-slate-900 border border-slate-800" />
+                      <img 
+                        src={getSafeProductImageUrl(item.image, item.name)} 
+                        alt="" 
+                        className="w-10 h-10 rounded-lg object-cover bg-slate-900 border border-slate-800" 
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = getApplianceFallbackImage(item.name);
+                        }}
+                      />
                       <div>
                         <p className="font-bold text-white">{item.name}</p>
                         <p className="text-[10px] text-slate-400">SKU: {item.SKU} • Qty: {item.quantity} × ₹{item.price?.toLocaleString('en-IN')}</p>

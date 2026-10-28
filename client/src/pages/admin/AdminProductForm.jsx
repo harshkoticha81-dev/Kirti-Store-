@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 
 const AdminProductForm = () => {
   const { id } = useParams();
@@ -95,6 +96,10 @@ const AdminProductForm = () => {
         const res = await api.get(`/products/${id}`);
         if (res.data.success) {
           const p = res.data.product;
+          const rawImages = Array.isArray(p.images)
+            ? p.images.filter(img => typeof img === 'string' && img.trim().length > 0)
+            : (p.image ? [p.image] : []);
+
           setFormData({
             name: p.name || '',
             SKU: p.SKU || '',
@@ -106,7 +111,7 @@ const AdminProductForm = () => {
             originalPrice: p.originalPrice || '',
             stockQuantity: p.stockQuantity || 0,
             lowStockThreshold: p.lowStockThreshold || 5,
-            images: p.images?.length > 0 ? p.images : [''],
+            images: rawImages,
             specifications: p.specifications?.length > 0 ? p.specifications : [{ key: '', value: '' }],
             warranty: p.warranty || '2 Years Manufacturer Warranty',
             packageSize: p.packageSize || (p.sellingPrice >= 2500 ? 'big' : 'small'),
@@ -159,18 +164,20 @@ const AdminProductForm = () => {
 
   // Image URL Handlers
   const addImage = () => {
-    if (newImageUrl.trim()) {
-      setFormData({
-        ...formData,
-        images: [...formData.images, newImageUrl.trim()]
-      });
+    if (newImageUrl && newImageUrl.trim()) {
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images.filter(img => typeof img === 'string' && img.trim().length > 0), newImageUrl.trim()]
+      }));
       setNewImageUrl('');
     }
   };
 
   const removeImage = (index) => {
-    const updated = formData.images.filter((_, i) => i !== index);
-    setFormData({ ...formData, images: updated });
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
   };
 
   // Handle Browse / File Picker from Local Storage / Drive
@@ -196,7 +203,7 @@ const AdminProductForm = () => {
       if (reader.result) {
         setFormData((prev) => ({
           ...prev,
-          images: [...prev.images, reader.result]
+          images: [...prev.images.filter(img => typeof img === 'string' && img.trim().length > 0), reader.result]
         }));
       }
     };
@@ -214,7 +221,7 @@ const AdminProductForm = () => {
 
       if (res.data.success && res.data.url) {
         setFormData((prev) => {
-          const imgs = [...prev.images];
+          const imgs = prev.images.filter(img => typeof img === 'string' && img.trim().length > 0);
           const lastIdx = imgs.length - 1;
           if (lastIdx >= 0 && typeof imgs[lastIdx] === 'string' && imgs[lastIdx].startsWith('data:')) {
             imgs[lastIdx] = res.data.url;
@@ -247,9 +254,13 @@ const AdminProductForm = () => {
       setSubmitting(true);
       const categoryVal = isNewCategoryMode && newCatCustomName.trim() ? newCatCustomName.trim() : formData.category;
 
+      const cleanImages = (formData.images || [])
+        .filter(img => typeof img === 'string' && img.trim().length > 0);
+
       const payload = {
         ...formData,
         category: categoryVal,
+        images: cleanImages.length > 0 ? cleanImages : ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'],
         sellingPrice: Number(formData.sellingPrice),
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : null,
         stockQuantity: Number(formData.stockQuantity),
@@ -728,15 +739,23 @@ const AdminProductForm = () => {
           )}
 
           {/* Gallery Thumbnails */}
-          {formData.images.length > 0 && (
+          {formData.images.filter(img => typeof img === 'string' && img.trim().length > 0).length > 0 ? (
             <div className="space-y-2 pt-2">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Current Photos ({formData.images.length}):
+                Current Photos ({formData.images.filter(img => typeof img === 'string' && img.trim().length > 0).length}):
               </span>
               <div className="flex flex-wrap gap-3">
-                {formData.images.map((img, i) => (
-                  <div key={i} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-700 group bg-slate-950">
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                {formData.images.filter(img => typeof img === 'string' && img.trim().length > 0).map((img, i) => (
+                  <div key={i} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-700 group bg-slate-900 shadow-md">
+                    <img 
+                      src={getSafeProductImageUrl(img, formData.category || formData.name)} 
+                      alt="" 
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200" 
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = getApplianceFallbackImage(formData.category || formData.name);
+                      }}
+                    />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <button
                         type="button"
@@ -750,6 +769,10 @@ const AdminProductForm = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center">
+              <p className="text-xs text-slate-500">No photos added yet. Browse from storage or paste a URL above.</p>
             </div>
           )}
         </div>

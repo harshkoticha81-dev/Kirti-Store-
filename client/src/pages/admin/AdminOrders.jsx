@@ -33,6 +33,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import api from '../../services/api';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 import { useToast } from '../../context/ToastContext';
 import { downloadInvoicePDF } from '../../utils/invoiceGenerator';
 import { 
@@ -486,10 +487,14 @@ const AdminOrders = () => {
                           {ord.items?.slice(0, 3).map((item, idx) => (
                             <img
                               key={idx}
-                              src={item.image}
+                              src={getSafeProductImageUrl(item.image, item.name)}
                               alt={item.name}
                               title={`${item.name} (Qty: ${item.quantity})`}
                               className="w-8 h-8 rounded-lg object-cover bg-slate-800 border border-slate-700 flex-shrink-0"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = getApplianceFallbackImage(item.name);
+                              }}
                             />
                           ))}
                           {(ord.items?.length || 0) > 3 && (
@@ -955,9 +960,13 @@ const AdminOrders = () => {
                   <div key={i} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 overflow-hidden">
                       <img 
-                        src={item.image} 
+                        src={getSafeProductImageUrl(item.image, item.name)} 
                         alt={item.name} 
                         className="w-12 h-12 rounded-xl object-cover bg-slate-900 border border-slate-800 flex-shrink-0" 
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = getApplianceFallbackImage(item.name);
+                        }}
                       />
                       <div className="overflow-hidden">
                         <p className="font-bold text-white truncate text-xs">{item.name}</p>

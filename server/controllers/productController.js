@@ -1,8 +1,73 @@
+const path = require('path');
+const fs = require('fs');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const InventoryTransaction = require('../models/InventoryTransaction');
 const pushNotificationService = require('../services/pushNotificationService');
 const { isBigAppliance } = require('../utils/shippingCalculator');
+
+// Helper to safely process and persist images (resolves base64 data URIs to files in MongoDB & uploads folder, filters empty strings)
+const processProductImages = async (imagesArray) => {
+  if (!imagesArray) {
+    return ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'];
+  }
+
+  const list = Array.isArray(imagesArray) ? imagesArray : [imagesArray];
+  const processed = [];
+  const uploadDir = path.join(__dirname, '../public/uploads');
+
+  for (let img of list) {
+    if (!img || typeof img !== 'string' || !img.trim()) continue;
+    img = img.trim();
+
+    // If it's a base64 image string, extract and save to MongoDB Atlas & disk
+    if (img.startsWith('data:image/')) {
+      try {
+        const matches = img.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        if (matches) {
+          const ext = matches[1].toLowerCase().replace('jpeg', 'jpg');
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, 'base64');
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const filename = `kirti-appliance-${uniqueSuffix}.${ext}`;
+
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          fs.writeFileSync(path.join(uploadDir, filename), buffer);
+
+          // Persist to MongoDB Atlas UploadedFile collection
+          try {
+            const UploadedFile = require('../models/UploadedFile');
+            await UploadedFile.findOneAndUpdate(
+              { filename },
+              {
+                filename,
+                contentType: `image/${ext}`,
+                data: buffer,
+                size: buffer.length
+              },
+              { upsert: true, new: true }
+            );
+          } catch (dbErr) {
+            console.error('[Product DB Persist Warning]:', dbErr.message);
+          }
+
+          processed.push(`/uploads/${filename}`);
+          continue;
+        }
+      } catch (err) {
+        console.error('Failed to parse base64 image in productController:', err.message);
+      }
+    }
+
+    processed.push(img);
+  }
+
+  return processed.length > 0
+    ? processed
+    : ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'];
+};
 
 // Helper to generate a URL slug
 const slugify = (text) => {
@@ -192,6 +257,14 @@ exports.getProductById = async (req, res, next) => {
       });
     }
 
+    // Sanitize images array
+    if (Array.isArray(product.images)) {
+      product.images = product.images.filter(img => typeof img === 'string' && img.trim().length > 0);
+      if (product.images.length === 0) {
+        product.images = ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'];
+      }
+    }
+
     // Fetch related products from same category
     const relatedProducts = await Product.find({
       category: product.category,
@@ -293,6 +366,8 @@ exports.createProduct = async (req, res, next) => {
     const resolvedPackageSize = packageSize || (isBigAppliance({ name, categoryName: categoryDoc.name, sellingPrice }) ? 'big' : 'small');
     const resolvedTransCharge = transportationCharge !== undefined ? Number(transportationCharge) : (resolvedPackageSize === 'big' ? 120 : 60);
 
+    const cleanImages = await processProductImages(images);
+
     const product = await Product.create({
       name: name.trim(),
       slug: uniqueSlug,
@@ -306,7 +381,7 @@ exports.createProduct = async (req, res, next) => {
       originalPrice: originalPrice ? Number(originalPrice) : null,
       stockQuantity: Math.max(0, Number(stockQuantity)),
       lowStockThreshold: Math.max(0, Number(lowStockThreshold)),
-      images: Array.isArray(images) && images.length > 0 ? images : ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'],
+      images: cleanImages,
       specifications: Array.isArray(specifications) ? specifications : [],
       warranty: warranty || '2 Years Manufacturer Warranty',
       isFeatured: Boolean(isFeatured),
@@ -437,7 +512,7 @@ exports.updateProduct = async (req, res, next) => {
     if (sellingPrice !== undefined) product.sellingPrice = Math.max(0, Number(sellingPrice));
     if (originalPrice !== undefined) product.originalPrice = originalPrice ? Math.max(0, Number(originalPrice)) : null;
     if (lowStockThreshold !== undefined) product.lowStockThreshold = Math.max(0, Number(lowStockThreshold));
-    if (images && Array.isArray(images)) product.images = images;
+    if (images !== undefined) product.images = await processProductImages(images);
     if (specifications && Array.isArray(specifications)) product.specifications = specifications;
     if (warranty !== undefined) product.warranty = warranty;
     if (isFeatured !== undefined) product.isFeatured = Boolean(isFeatured);

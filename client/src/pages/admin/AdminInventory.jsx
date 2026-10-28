@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 
 const AdminInventory = () => {
   const { success, error: showError } = useToast();
@@ -232,7 +233,15 @@ const AdminInventory = () => {
                         <tr key={p._id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="py-3 px-6">
                             <div className="flex items-center gap-3">
-                              <img src={p.images?.[0]} alt="" className="w-10 h-10 rounded-xl object-cover bg-slate-950 border border-slate-800 flex-shrink-0" />
+                              <img 
+                                src={getSafeProductImageUrl(p.images?.[0], p.categoryName || p.name)} 
+                                alt="" 
+                                className="w-10 h-10 rounded-xl object-cover bg-slate-950 border border-slate-800 flex-shrink-0"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = getApplianceFallbackImage(p.categoryName || p.name);
+                                }}
+                              />
                               <span className="font-bold text-white truncate max-w-xs">{p.name}</span>
                             </div>
                           </td>

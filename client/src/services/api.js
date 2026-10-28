@@ -18,15 +18,38 @@ export const getApiBaseUrl = () => {
 
 // Helper for images and static assets from server
 export const getServerAssetUrl = (path = '') => {
-  if (!path) return 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80';
-  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
-    return path;
+  if (!path || typeof path !== 'string' || !path.trim()) {
+    return 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80';
   }
-  const root = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/+$/, '').replace(/\/api$/, '')
-    : (Capacitor.isNativePlatform() ? 'http://10.0.2.2:5000' : 'https://kirti-store-api.onrender.com');
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${root}${cleanPath}`;
+  const trimmed = path.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+
+  if (import.meta.env.VITE_API_URL) {
+    const root = import.meta.env.VITE_API_URL.replace(/\/+$/, '').replace(/\/api$/, '');
+    return `${root}${cleanPath}`;
+  }
+
+  if (Capacitor.isNativePlatform()) {
+    return `http://10.0.2.2:5000${cleanPath}`;
+  }
+
+  const isLocalhost = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname.startsWith('10.')
+  );
+
+  if (isLocalhost) {
+    // In local development, relative path /uploads/... is proxied directly to localhost:5000 by vite.config.js
+    return cleanPath;
+  }
+
+  // Production web deployment (e.g. Vercel)
+  return `https://kirti-store-api.onrender.com${cleanPath}`;
 };
 
 const api = axios.create({

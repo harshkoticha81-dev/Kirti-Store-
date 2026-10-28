@@ -20,6 +20,7 @@ import {
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { getWhatsAppDirectLink } from '../../utils/whatsappUtils';
+import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 
 const AdminCustomers = () => {
   const [customers, setCustomers] = useState([]);
@@ -341,7 +342,15 @@ const AdminCustomers = () => {
                               {ord.items?.map((item, idx) => (
                                 <div key={idx} className="flex items-center justify-between py-1 text-xs">
                                   <div className="flex items-center gap-2">
-                                    <img src={item.image} alt="" className="w-7 h-7 rounded object-cover bg-slate-900 border border-slate-800" />
+                                    <img 
+                                      src={getSafeProductImageUrl(item.image, item.name)} 
+                                      alt="" 
+                                      className="w-7 h-7 rounded object-cover bg-slate-900 border border-slate-800" 
+                                      onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = getApplianceFallbackImage(item.name);
+                                      }}
+                                    />
                                     <span className="text-slate-200">{item.name} <strong className="text-slate-400">×{item.quantity}</strong></span>
                                   </div>
                                   <span className="font-bold text-white">₹{item.lineTotal?.toLocaleString('en-IN')}</span>
