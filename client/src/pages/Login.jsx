@@ -49,17 +49,6 @@ const Login = () => {
     console.warn('[Google Sign-In]: Authentication dialog closed or failed.');
   };
 
-  // Quick Demo Fill
-  const fillCustomerDemo = () => {
-    setEmail('customer@kirtistore.com');
-    setPassword('Customer@2026');
-  };
-
-  const fillAdminDemo = () => {
-    setEmail('admin@kirtistore.com');
-    setPassword('Admin@KirtiStore2026');
-  };
-
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full bg-white rounded-3xl border border-surface-border p-8 sm:p-10 shadow-premium space-y-6">
@@ -149,29 +138,6 @@ const Login = () => {
               theme="outline"
               width="100%"
             />
-          </div>
-        </div>
-
-        {/* Quick Demo Logins Helper Box */}
-        <div className="p-3.5 rounded-2xl bg-surface-bg border border-surface-border space-y-2">
-          <p className="text-[11px] font-bold text-charcoal uppercase tracking-wider text-center">
-            Quick Demo Autofill
-          </p>
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <button
-              type="button"
-              onClick={fillCustomerDemo}
-              className="py-1.5 px-2 rounded-lg bg-white border border-surface-border hover:border-secondary text-primary font-semibold transition-colors"
-            >
-              Demo Customer
-            </button>
-            <button
-              type="button"
-              onClick={fillAdminDemo}
-              className="py-1.5 px-2 rounded-lg bg-white border border-surface-border hover:border-zinc-900 text-zinc-900 font-semibold transition-colors"
-            >
-              Demo Admin
-            </button>
           </div>
         </div>
 
