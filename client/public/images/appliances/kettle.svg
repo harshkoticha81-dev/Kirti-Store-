@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="kettle-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#bae6fd" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="kettle-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#kettle-bg)"/>
+  <circle cx="200" cy="200" r="140" fill="#1e293b" opacity="0.6"/>
+  <!-- 360 Degree Swivel Base -->
+  <ellipse cx="200" cy="325" rx="85" ry="16" fill="#334155"/>
+  <ellipse cx="200" cy="322" rx="78" ry="13" fill="#1e293b"/>
+  <!-- Kettle Bottom SS Ring & LED Halo -->
+  <path d="M140 270 L145 315 Q147 320 200 320 Q253 320 255 315 L260 270 Z" fill="#475569"/>
+  <ellipse cx="200" cy="315" rx="55" ry="4" fill="#38bdf8" opacity="0.8"/>
+  <!-- Glass Body -->
+  <path d="M150 140 L140 270 Q145 285 200 285 Q255 285 260 270 L250 140 Z" fill="url(#glass)" stroke="#7dd3fc" stroke-width="2"/>
+  <!-- Water & Bubbles Inside -->
+  <path d="M142 245 Q170 238 200 245 Q230 252 258 245 L258 270 Q255 285 200 285 Q145 285 142 270 Z" fill="#0284c7" opacity="0.4"/>
+  <circle cx="170" cy="260" r="4" fill="#bae6fd" opacity="0.8"/>
+  <circle cx="220" cy="255" r="5" fill="#bae6fd" opacity="0.8"/>
+  <circle cx="195" cy="268" r="3" fill="#bae6fd" opacity="0.8"/>
+  <!-- Pour Spout -->
+  <path d="M145 135 L115 125 L145 160 Z" fill="#475569"/>
+  <!-- Top SS Ring -->
+  <rect x="145" y="125" width="110" height="18" rx="4" fill="#64748b"/>
+  <!-- Pop-up Lid -->
+  <path d="M148 125 Q200 100 252 125 Z" fill="#1e293b"/>
+  <circle cx="200" cy="110" r="8" fill="#475569"/>
+  <!-- Ergonomic Stay-Cool Handle -->
+  <path d="M255 140 C305 140 310 280 255 295" fill="none" stroke="#0f172a" stroke-width="18" stroke-linecap="round"/>
+  <path d="M255 140 C300 140 305 280 255 295" fill="none" stroke="#334155" stroke-width="12" stroke-linecap="round"/>
+  <text x="200" y="375" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="14" font-weight="700" letter-spacing="2">KIRTI ELECTRIC KETTLE</text>
+</svg>

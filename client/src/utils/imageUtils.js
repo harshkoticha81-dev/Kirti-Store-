@@ -1,14 +1,14 @@
 import { getServerAssetUrl } from '../services/api';
 
 export const CATEGORY_FALLBACK_IMAGES = {
-  'mixers-grinders': 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80',
-  'blenders': 'https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&w=600&q=80',
-  'soda-makers': 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80',
-  'electric-kettles': 'https://images.unsplash.com/photo-1594213114663-d94db9b17125?auto=format&fit=crop&w=600&q=80',
-  'juicers': 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&w=600&q=80',
-  'toasters-sandwich-makers': 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=600&q=80',
-  'food-processors': 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80',
-  'default': 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80'
+  'mixers-grinders': '/images/appliances/mixer.svg',
+  'blenders': '/images/appliances/blender.svg',
+  'soda-makers': '/images/appliances/soda.svg',
+  'electric-kettles': '/images/appliances/kettle.svg',
+  'juicers': '/images/appliances/blender.svg',
+  'toasters-sandwich-makers': '/images/appliances/default.svg',
+  'food-processors': '/images/appliances/mixer.svg',
+  'default': '/images/appliances/default.svg'
 };
 
 export const getApplianceFallbackImage = (categoryOrName = '') => {

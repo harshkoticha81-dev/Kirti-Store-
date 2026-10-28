@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="def-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="def-copper" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#def-bg)"/>
+  <circle cx="200" cy="200" r="140" fill="#1e293b" opacity="0.6"/>
+  <circle cx="200" cy="200" r="100" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="8 8"/>
+  <!-- Modern Kitchen Appliance Icon -->
+  <g transform="translate(100, 100)">
+    <rect x="30" y="30" width="140" height="140" rx="28" fill="#334155"/>
+    <rect x="40" y="40" width="120" height="120" rx="20" fill="#0f172a"/>
+    <!-- Sparkle / Star Icon -->
+    <path d="M100 55 L108 85 L138 93 L108 101 L100 131 L92 101 L62 93 L92 85 Z" fill="url(#def-copper)"/>
+    <circle cx="100" cy="93" r="10" fill="#fff" opacity="0.9"/>
+  </g>
+  <text x="200" y="335" text-anchor="middle" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="16" font-weight="800">KIRTI STORE</text>
+  <text x="200" y="360" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="12" font-weight="600" letter-spacing="1">PREMIUM APPLIANCE</text>
+</svg>

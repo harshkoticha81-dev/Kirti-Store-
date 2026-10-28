@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="50%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+    <linearGradient id="copper" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg)"/>
+  <circle cx="200" cy="200" r="140" fill="#1e293b" opacity="0.6"/>
+  <circle cx="200" cy="200" r="110" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="6 6"/>
+  <!-- Base Unit -->
+  <g filter="url(#glow)">
+    <path d="M130 250 L145 320 Q150 335 165 335 L235 335 Q250 335 255 320 L270 250 Z" fill="#334155"/>
+    <path d="M140 255 L150 315 Q153 325 165 325 L235 325 Q247 325 250 315 L260 255 Z" fill="#1e293b"/>
+    <!-- Control Knob -->
+    <circle cx="200" cy="290" r="16" fill="url(#copper)"/>
+    <circle cx="200" cy="290" r="12" fill="#0f172a"/>
+    <rect x="198" y="278" width="4" height="10" rx="2" fill="url(#copper)"/>
+    <!-- Speed Markers -->
+    <circle cx="180" cy="290" r="2.5" fill="#94a3b8"/>
+    <circle cx="190" cy="275" r="2.5" fill="#94a3b8"/>
+    <circle cx="200" cy="270" r="2.5" fill="url(#copper)"/>
+    <circle cx="210" cy="275" r="2.5" fill="#94a3b8"/>
+    <circle cx="220" cy="290" r="2.5" fill="#94a3b8"/>
+    <!-- Main SS Jar -->
+    <path d="M155 120 L165 245 Q165 250 175 250 L225 250 Q235 250 235 245 L245 120 Z" fill="url(#steel)"/>
+    <!-- Jar Ribs / Flow Breakers -->
+    <path d="M185 130 L188 235" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+    <path d="M215 130 L212 235" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+    <!-- Handle -->
+    <path d="M243 140 C270 140 270 215 238 220" fill="none" stroke="#0f172a" stroke-width="12" stroke-linecap="round"/>
+    <path d="M243 140 C266 140 266 215 238 220" fill="none" stroke="#334155" stroke-width="8" stroke-linecap="round"/>
+    <!-- Dome Lid -->
+    <path d="M150 120 Q200 85 250 120 Z" fill="#0f172a" opacity="0.85"/>
+    <rect x="146" y="116" width="108" height="8" rx="4" fill="url(#copper)"/>
+    <!-- Top Stopper Cap -->
+    <circle cx="200" cy="98" r="10" fill="#0f172a"/>
+    <circle cx="200" cy="98" r="6" fill="url(#copper)"/>
+  </g>
+  <text x="200" y="375" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="14" font-weight="700" letter-spacing="2">KIRTI MIXER GRINDER</text>
+</svg>
