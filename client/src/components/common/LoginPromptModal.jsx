@@ -1,11 +1,14 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, UserPlus, X, Lock, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../../context/AuthContext';
 import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 
 const LoginPromptModal = ({ isOpen, onClose, product }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { googleLogin } = useAuth();
 
   // Close on Escape key press
   useEffect(() => {
@@ -41,6 +44,14 @@ const LoginPromptModal = ({ isOpen, onClose, product }) => {
   const handleGoRegister = () => {
     onClose();
     navigate(`/register?redirect=${currentRedirect}`);
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    if (!credentialResponse?.credential) return;
+    const res = await googleLogin(credentialResponse.credential);
+    if (res?.success) {
+      onClose();
+    }
   };
 
   return (
@@ -133,17 +144,38 @@ const LoginPromptModal = ({ isOpen, onClose, product }) => {
 
         {/* Action Buttons */}
         <div className="space-y-2.5 pt-2">
+          {/* Quick Google Sign In */}
+          <div className="flex justify-center w-full pb-1">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => console.warn('[Google Sign-In]: Modal login closed or failed')}
+              shape="pill"
+              size="large"
+              text="signin_with"
+              theme="outline"
+              width="100%"
+            />
+          </div>
+
+          <div className="relative flex items-center justify-center my-1">
+            <div className="border-t border-surface-border w-full"></div>
+            <span className="bg-white px-2 text-[10px] font-semibold text-charcoal-light uppercase tracking-wider">
+              or
+            </span>
+            <div className="border-t border-surface-border w-full"></div>
+          </div>
+
           <button
             onClick={handleGoLogin}
-            className="w-full py-3.5 px-5 rounded-2xl bg-primary hover:bg-zinc-800 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+            className="w-full py-3 px-5 rounded-2xl bg-primary hover:bg-zinc-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]"
           >
             <LogIn className="w-4 h-4 text-emerald-400" />
-            <span>Log In to Add to Cart</span>
+            <span>Sign In with Email</span>
           </button>
 
           <button
             onClick={handleGoRegister}
-            className="w-full py-3 px-5 rounded-2xl bg-white hover:bg-surface-muted border border-surface-border text-primary font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+            className="w-full py-2.5 px-5 rounded-2xl bg-white hover:bg-surface-muted border border-surface-border text-primary font-bold text-xs flex items-center justify-center gap-2 transition-colors"
           >
             <UserPlus className="w-4 h-4 text-secondary" />
             <span>Create New Account</span>

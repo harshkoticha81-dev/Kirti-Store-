@@ -71,6 +71,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (credential) => {
+    try {
+      const res = await api.post('/auth/google', { credential });
+      if (res.data.success) {
+        const { token: authToken, user: authUser } = res.data;
+        setToken(authToken);
+        setUser(authUser);
+        localStorage.setItem('kirti_token', authToken);
+        localStorage.setItem('kirti_user', JSON.stringify(authUser));
+        success(`Welcome, ${authUser.name}!`);
+        return { success: true, user: authUser };
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Google sign-in failed. Please try again.';
+      showError(msg);
+      return { success: false, message: msg };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -104,6 +123,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         isAdmin: user?.role === 'admin',
         login,
+        googleLogin,
         register,
         logout,
         updateProfile,

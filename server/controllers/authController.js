@@ -1,6 +1,9 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client();
 
 // @desc    Register a new customer
 // @route   POST /api/auth/register
@@ -301,6 +304,105 @@ exports.resetPassword = async (req, res, next) => {
       message: 'Password has been reset successfully! You can now log in.'
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Authenticate or register customer via Google OAuth ID token
+// @route   POST /api/auth/google
+// @access  Public
+exports.googleAuth = async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google credential token is required.'
+      });
+    }
+
+    let payload;
+    try {
+      const verifyOptions = { idToken: credential };
+      if (process.env.GOOGLE_CLIENT_ID) {
+        verifyOptions.audience = process.env.GOOGLE_CLIENT_ID;
+      }
+      const ticket = await googleClient.verifyIdToken(verifyOptions);
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error('[Google Token Verify Error]:', verifyErr.message);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Google credential token. Verification failed.'
+      });
+    }
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google profile did not contain a valid email address.'
+      });
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if user already exists
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (user) {
+      // Check if suspended
+      if (user.accountStatus === 'suspended') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account has been suspended. Please contact customer support.'
+        });
+      }
+
+      // Link googleId or update avatar if not yet set
+      let needsSave = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        needsSave = true;
+      }
+      if (!user.avatar && picture) {
+        user.avatar = picture;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+      }
+    } else {
+      // Create new customer account
+      user = await User.create({
+        name: name || 'Google Customer',
+        email: normalizedEmail,
+        googleId,
+        avatar: picture || '',
+        role: 'customer',
+        accountStatus: 'active'
+      });
+    }
+
+    const token = user.generateAuthToken();
+
+    res.status(200).json({
+      success: true,
+      message: `Welcome, ${user.name}!`,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        avatar: user.avatar || '',
+        accountStatus: user.accountStatus
+      }
+    });
+  } catch (error) {
+    console.error('[Google Auth Error]:', error);
     next(error);
   }
 };

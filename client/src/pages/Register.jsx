@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, User, Phone, Flame, ArrowRight, Check } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -16,7 +17,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const { error: showError } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -73,6 +74,21 @@ const Register = () => {
     if (result?.success) {
       navigate(redirect);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    if (!credentialResponse?.credential) return;
+    setSubmitting(true);
+    const result = await googleLogin(credentialResponse.credential);
+    setSubmitting(false);
+
+    if (result?.success) {
+      navigate(redirect);
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.warn('[Google Sign-In]: Registration/login canceled or failed.');
   };
 
   return (
@@ -220,6 +236,30 @@ const Register = () => {
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
+
+        {/* Google Sign In Divider & Button */}
+        <div className="space-y-4">
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-surface-border w-full"></div>
+            <span className="bg-white px-3 text-[11px] font-semibold text-charcoal-light uppercase tracking-wider shrink-0">
+              or sign up with
+            </span>
+            <div className="border-t border-surface-border w-full"></div>
+          </div>
+
+          <div className="flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap
+              shape="pill"
+              size="large"
+              text="signup_with"
+              theme="outline"
+              width="100%"
+            />
+          </div>
+        </div>
 
         {/* Footer Link */}
         <div className="text-center text-xs text-charcoal-light">
