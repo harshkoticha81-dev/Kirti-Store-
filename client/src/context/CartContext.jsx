@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { calculateCartTransportation } from '../utils/shippingCalculator';
 import LoginPromptModal from '../components/common/LoginPromptModal';
+import OtpLoginModal from '../components/common/OtpLoginModal';
 
 const CartContext = createContext(null);
 
@@ -22,6 +23,8 @@ export const CartProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [loginPromptProduct, setLoginPromptProduct] = useState(null);
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [pendingCartItem, setPendingCartItem] = useState(null);
 
   // Recalculate local cart metrics using dynamic appliance transportation rules
   const computeCartTotals = (items) => {
@@ -82,15 +85,16 @@ export const CartProvider = ({ children }) => {
   }, [cart, isAuthenticated]);
 
   const addToCart = async (product, quantity = 1) => {
+    const qty = Math.max(1, parseInt(quantity, 10));
+
     // 1. Login Validation: Customer MUST be logged in to add products to cart!
     if (!isAuthenticated) {
+      setPendingCartItem({ product, quantity: qty });
       setLoginPromptProduct(product);
-      setLoginPromptOpen(true);
-      showError('Please log in to add products to your cart.');
+      setOtpModalOpen(true);
+      showError('Please verify your mobile number via OTP to add products to your cart.');
       return false;
     }
-
-    const qty = Math.max(1, parseInt(quantity, 10));
 
     // 2. Validate stock
     if (product.stockQuantity <= 0) {
@@ -116,6 +120,31 @@ export const CartProvider = ({ children }) => {
       return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOtpSuccess = async (authUser) => {
+    setOtpModalOpen(false);
+    if (pendingCartItem) {
+      const { product, quantity } = pendingCartItem;
+      setPendingCartItem(null);
+      setTimeout(async () => {
+        try {
+          const qty = Math.max(1, parseInt(quantity, 10));
+          const res = await api.post('/cart/items', {
+            productId: product._id,
+            quantity: qty,
+          });
+          if (res.data.success) {
+            setCart(res.data.cart);
+            setCartOpen(true);
+            success(`✨ Verified! Added "${product.name}" directly to your cart.`);
+          }
+        } catch (err) {
+          console.error('[Auto Add to Cart Error]:', err);
+          showError('Logged in, but failed to auto-add product. Please click Add to Cart again.');
+        }
+      }, 350);
     }
   };
 
@@ -238,13 +267,33 @@ export const CartProvider = ({ children }) => {
           setLoginPromptProduct(prod);
           setLoginPromptOpen(true);
         },
+        openOtpLogin: (prod, qty = 1) => {
+          if (prod) {
+            setPendingCartItem({ product: prod, quantity: qty });
+            setLoginPromptProduct(prod);
+          }
+          setOtpModalOpen(true);
+        },
       }}
     >
       {children}
+      <OtpLoginModal
+        isOpen={otpModalOpen}
+        onClose={() => {
+          setOtpModalOpen(false);
+          setPendingCartItem(null);
+        }}
+        product={loginPromptProduct}
+        onSuccess={handleOtpSuccess}
+      />
       <LoginPromptModal
         isOpen={loginPromptOpen}
         onClose={() => setLoginPromptOpen(false)}
         product={loginPromptProduct}
+        onOpenOtp={() => {
+          setLoginPromptOpen(false);
+          setOtpModalOpen(true);
+        }}
       />
     </CartContext.Provider>
   );

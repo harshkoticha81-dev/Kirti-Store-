@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, Flame, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Flame, ArrowRight, ShieldCheck, Smartphone } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const { login, googleLogin } = useAuth();
+  const { openOtpLogin } = useCart();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
@@ -117,8 +119,8 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Google Sign In Divider & Button */}
-        <div className="space-y-4">
+        {/* Alternate Sign-In Options */}
+        <div className="space-y-3.5">
           <div className="relative flex items-center justify-center">
             <div className="border-t border-surface-border w-full"></div>
             <span className="bg-white px-3 text-[11px] font-semibold text-charcoal-light uppercase tracking-wider shrink-0">
@@ -126,6 +128,15 @@ const Login = () => {
             </span>
             <div className="border-t border-surface-border w-full"></div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => openOtpLogin()}
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm flex items-center justify-center gap-2.5 shadow-sm transition-all active:scale-[0.98]"
+          >
+            <Smartphone className="w-4 h-4 text-emerald-200" />
+            <span>Sign In with Mobile OTP</span>
+          </button>
 
           <div className="flex justify-center w-full">
             <GoogleLogin

@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogIn, UserPlus, X, Lock, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { LogIn, UserPlus, X, Lock, ShoppingBag, ShieldCheck, Smartphone } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
 import { getSafeProductImageUrl, getApplianceFallbackImage } from '../../utils/imageUtils';
 
-const LoginPromptModal = ({ isOpen, onClose, product }) => {
+const LoginPromptModal = ({ isOpen, onClose, product, onOpenOtp }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { googleLogin } = useAuth();
@@ -165,9 +165,23 @@ const LoginPromptModal = ({ isOpen, onClose, product }) => {
             <div className="border-t border-surface-border w-full"></div>
           </div>
 
+          {/* Instant Mobile OTP Option */}
+          {onOpenOtp && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenOtp();
+              }}
+              className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]"
+            >
+              <Smartphone className="w-4 h-4 text-emerald-200" />
+              <span>Instant Mobile OTP Login</span>
+            </button>
+          )}
+
           <button
             onClick={handleGoLogin}
-            className="w-full py-3 px-5 rounded-2xl bg-primary hover:bg-zinc-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]"
+            className="w-full py-2.5 px-5 rounded-2xl bg-primary hover:bg-zinc-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]"
           >
             <LogIn className="w-4 h-4 text-emerald-400" />
             <span>Sign In with Email</span>
