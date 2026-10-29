@@ -74,8 +74,8 @@ const Contact = () => {
                 <Store className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-white">Find Nearest Store or Service Center</h4>
-                <p className="text-xs text-zinc-400">8+ outlets with live Google Maps navigation</p>
+                <h4 className="font-bold text-sm text-white">Visit Kirti Store Headquarters</h4>
+                <p className="text-xs text-zinc-400">Main Bazar, Dhoraji with live Google Maps</p>
               </div>
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed">

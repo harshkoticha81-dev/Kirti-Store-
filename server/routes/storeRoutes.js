@@ -12,3 +12,4 @@ router.get('/:id', getStoreById);
 router.post('/appointment', bookAppointment);
 
 module.exports = router;
+

@@ -93,7 +93,7 @@ const Navbar = () => {
     { name: 'Shop All', path: '/shop' },
     { name: 'Categories', path: '/shop?view=categories' },
     { name: 'Track Order', path: '/track-order' },
-    { name: 'Store Locator', path: '/stores', badge: 'Map' },
+    { name: 'Store & HQ', path: '/stores', badge: 'Dhoraji' },
     { name: 'Deals', path: '/deals' },
     { name: 'About Us', path: '/about' },
     { name: 'Contact', path: '/contact' },

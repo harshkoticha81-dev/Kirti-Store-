@@ -13,8 +13,8 @@ const StoreSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['flagship', 'service_center', 'retail_counter', 'spare_hub'],
-    default: 'service_center'
+    enum: ['headquarters', 'flagship', 'service_center', 'retail_counter', 'spare_hub'],
+    default: 'headquarters'
   },
   tagline: {
     type: String,
@@ -131,3 +131,4 @@ const StoreSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('Store', StoreSchema);
+
