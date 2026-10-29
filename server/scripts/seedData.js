@@ -113,11 +113,11 @@ const seedDatabase = async () => {
       accountStatus: 'active',
       addresses: [
         {
-          street: 'Flat 402, Royal Palms Residency, Senapati Bapat Marg',
-          apartment: 'Tower B',
-          city: 'Mumbai',
-          state: 'Maharashtra',
-          postalCode: '400013',
+          street: 'Main Bazar, Opp. Nandkurba Hospital',
+          apartment: 'Near Tower Chowk',
+          city: 'Dhoraji',
+          state: 'Gujarat',
+          postalCode: '360410',
           country: 'India',
           phone: '+919812345678',
           isDefault: true,

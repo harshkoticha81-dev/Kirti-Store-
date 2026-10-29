@@ -679,32 +679,6 @@ const Checkout = () => {
         </div>
       </div>
 
-      {/* Guest Autofill Quick Notification Banner */}
-      {!isAuthenticated && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0">
-              <Zap className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-primary">
-                Express Checkout Mode
-              </p>
-              <p className="text-xs text-charcoal-light">
-                Testing the store? Autofill verified customer details and Mumbai address with 1 click.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleAutofillDemo}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Autofill Demo Customer</span>
-          </button>
-        </div>
-      )}
-
       {/* ========================================================================= */}
       {/* STEP 1: DELIVERY ADDRESS & CONTACT FORM                                  */}
       {/* ========================================================================= */}
@@ -856,7 +830,7 @@ const Checkout = () => {
                         type="text"
                         name="city"
                         required
-                        placeholder="Mumbai"
+                        placeholder="Dhoraji"
                         value={shippingAddress.city}
                         onChange={handleAddressChange}
                         className={`w-full mt-1.5 px-4 py-3 rounded-xl border text-charcoal font-semibold focus:ring-2 focus:ring-secondary/20 focus:border-secondary focus:outline-none transition-all ${

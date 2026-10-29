@@ -106,7 +106,7 @@ export const downloadInvoicePDF = (order) => {
     const street = order.shippingAddress?.street || 'Customer Address';
     doc.text(street.substring(0, 45), rightColX, yRight);
     yRight += 4;
-    const cityStatePin = `${order.shippingAddress?.city || 'Mumbai'}, ${order.shippingAddress?.state || 'Maharashtra'} - ${order.shippingAddress?.postalCode || '400013'}`;
+    const cityStatePin = `${order.shippingAddress?.city || 'Dhoraji'}, ${order.shippingAddress?.state || 'Gujarat'} - ${order.shippingAddress?.postalCode || '360410'}`;
     doc.text(cityStatePin, rightColX, yRight);
     yRight += 4;
     doc.text(`Phone: ${order.customerPhone || order.shippingAddress?.phone || '—'}`, rightColX, yRight);

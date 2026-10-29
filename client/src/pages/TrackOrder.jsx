@@ -34,7 +34,7 @@ import { openWhatsAppDirect } from '../utils/whatsappUtils';
 
 const statusSteps = [
   { key: 'Confirmed', label: 'Order Confirmed', desc: 'Verified and authorized' },
-  { key: 'Processing', label: 'Packed & Quality Tested', desc: 'Appliance sealed at Mumbai Hub' },
+  { key: 'Processing', label: 'Packed & Quality Tested', desc: 'Appliance sealed at Dhoraji Headquarters' },
   { key: 'Shipped', label: 'In Transit with Courier', desc: 'Dispatched via express logistics' },
   { key: 'Delivered', label: 'Delivered to Doorstep', desc: 'Handed over to customer' }
 ];

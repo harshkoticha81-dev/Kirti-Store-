@@ -59,9 +59,9 @@ const Account = () => {
   const initialAddr = user?.addresses?.[0] || {};
   const [street, setStreet] = useState(initialAddr.street || '');
   const [apartment, setApartment] = useState(initialAddr.apartment || '');
-  const [postalCode, setPostalCode] = useState(initialAddr.postalCode || '400013');
-  const [city, setCity] = useState(initialAddr.city || 'Mumbai');
-  const [state, setState] = useState(initialAddr.state || 'Maharashtra');
+  const [postalCode, setPostalCode] = useState(initialAddr.postalCode || '360410');
+  const [city, setCity] = useState(initialAddr.city || 'Dhoraji');
+  const [state, setState] = useState(initialAddr.state || 'Gujarat');
   const [updatingAddress, setUpdatingAddress] = useState(false);
   const [addrPincodeStatus, setAddrPincodeStatus] = useState({
     loading: false,
@@ -623,7 +623,7 @@ const Account = () => {
                       required
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="Mumbai"
+                      placeholder="Dhoraji"
                       className={`w-full mt-1 px-4 py-2.5 rounded-xl border font-semibold focus:outline-none focus:ring-1 focus:ring-secondary ${
                         addrPincodeStatus.success
                           ? 'bg-emerald-50/20 border-emerald-300'

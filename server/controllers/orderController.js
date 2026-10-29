@@ -454,7 +454,7 @@ exports.trackOrder = async (req, res, next) => {
       {
         id: 2,
         title: 'Appliance Packed & Quality Sealed',
-        location: 'Kirti Central Hub, Mumbai Logistics Park',
+        location: 'Kirti Store Headquarters & Logistics, Dhoraji',
         time: new Date(orderTime.getTime() + 4 * 3600000).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) + ' • ' + new Date(orderTime.getTime() + 4 * 3600000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
         status: ['Processing', 'Shipped', 'Delivered'].includes(order.orderStatus) ? 'completed' : 'in-transit',
         details: 'Motor insulation testing complete. Shockproof protective packaging applied.'
