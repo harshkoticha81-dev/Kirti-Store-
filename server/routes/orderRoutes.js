@@ -9,13 +9,13 @@ const {
   updateOrderStatus,
   updatePaymentProof
 } = require('../controllers/orderController');
-const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { protect, adminOnly, optionalAuth } = require('../middleware/authMiddleware');
 
 // Public order tracking route
 router.get('/track', trackOrder);
 
 // Customer order routes
-router.post('/', protect, createOrder);
+router.post('/', optionalAuth, createOrder);
 router.get('/my-orders', protect, getMyOrders);
 router.get('/:id', protect, getOrderById);
 router.patch('/:id/payment-proof', protect, updatePaymentProof);

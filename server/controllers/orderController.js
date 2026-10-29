@@ -34,12 +34,15 @@ exports.createOrder = async (req, res, next) => {
     shippingAddress.postalCode = postalCode;
 
     // Retrieve user's cart or items
-    let cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
-    if (cart && cart.items) {
-      const originalCount = cart.items.length;
-      cart.items = cart.items.filter((item) => item.product && item.product.status === 'active');
-      if (cart.items.length !== originalCount) {
-        await cart.save().catch(() => {});
+    let cart = null;
+    if (req.user) {
+      cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
+      if (cart && cart.items) {
+        const originalCount = cart.items.length;
+        cart.items = cart.items.filter((item) => item.product && item.product.status === 'active');
+        if (cart.items.length !== originalCount) {
+          await cart.save().catch(() => {});
+        }
       }
     }
 
@@ -121,12 +124,27 @@ exports.createOrder = async (req, res, next) => {
     const paymentStatus = 'Completed';
 
     // Resolve comprehensive customer details
-    const resolvedCustomerName = (customerName && customerName.trim()) || req.user.name || 'Valued Customer';
-    const resolvedCustomerEmail = (customerEmail && customerEmail.trim()) || req.user.email;
-    const resolvedCustomerPhone = (customerPhone && customerPhone.trim()) || shippingAddress.phone || req.user.phone || '';
+    const resolvedCustomerName = (customerName && customerName.trim()) || req.user?.name || 'Valued Customer';
+    const resolvedCustomerEmail = (customerEmail && customerEmail.trim()) || req.user?.email || '';
+    const resolvedCustomerPhone = (customerPhone && customerPhone.trim()) || shippingAddress.phone || req.user?.phone || '';
+
+    // Find or link real customer user
+    let orderUserId = req.user ? req.user.id : null;
+    if (!orderUserId && resolvedCustomerEmail) {
+      let existingUser = await User.findOne({ email: resolvedCustomerEmail.toLowerCase() });
+      if (!existingUser) {
+        existingUser = await User.create({
+          name: resolvedCustomerName,
+          email: resolvedCustomerEmail.toLowerCase(),
+          phone: resolvedCustomerPhone,
+          role: 'customer'
+        });
+      }
+      orderUserId = existingUser._id;
+    }
 
     // Update user profile phone if missing
-    if (resolvedCustomerPhone && (!req.user.phone || req.user.phone.trim() === '')) {
+    if (req.user && resolvedCustomerPhone && (!req.user.phone || req.user.phone.trim() === '')) {
       await User.findByIdAndUpdate(req.user.id, { phone: resolvedCustomerPhone }).catch(() => {});
     }
 
@@ -138,10 +156,12 @@ exports.createOrder = async (req, res, next) => {
     // Evaluate RTO (Return to Origin) Risk based on address, pincode, phone and payment proof
     let pastDelivered = 0;
     let pastCancelled = 0;
-    try {
-      pastDelivered = await Order.countDocuments({ user: req.user.id, orderStatus: 'Delivered' });
-      pastCancelled = await Order.countDocuments({ user: req.user.id, orderStatus: 'Cancelled' });
-    } catch (_) {}
+    if (orderUserId) {
+      try {
+        pastDelivered = await Order.countDocuments({ user: orderUserId, orderStatus: 'Delivered' });
+        pastCancelled = await Order.countDocuments({ user: orderUserId, orderStatus: 'Cancelled' });
+      } catch (_) {}
+    }
 
     const calculatedRtoRisk = calculateRtoRisk({
       shippingAddress: {
@@ -162,7 +182,7 @@ exports.createOrder = async (req, res, next) => {
 
     // Create Order
     const order = await Order.create({
-      user: req.user.id,
+      user: orderUserId,
       customerName: resolvedCustomerName,
       customerEmail: resolvedCustomerEmail,
       customerPhone: resolvedCustomerPhone,

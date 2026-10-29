@@ -59,30 +59,30 @@ const Checkout = () => {
   const [currentStep, setCurrentStep] = useState('address');
 
   // Customer Contact Info
-  const [customerName, setCustomerName] = useState(user?.name || 'Pooja Sharma');
-  const [customerEmail, setCustomerEmail] = useState(user?.email || 'customer@kirtistore.com');
-  const [customerPhone, setCustomerPhone] = useState(user?.phone || '+91 9812345678');
+  const [customerName, setCustomerName] = useState(user?.name || '');
+  const [customerEmail, setCustomerEmail] = useState(user?.email || '');
+  const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
 
   // Shipping Address
   const [shippingAddress, setShippingAddress] = useState(() => {
     const defaultAddr = user?.addresses?.find((a) => a.isDefault) || user?.addresses?.[0];
     return {
-      street: defaultAddr?.street || 'Flat 402, Royal Palms Residency, Senapati Bapat Marg',
-      apartment: defaultAddr?.apartment || 'Tower B, 4th Floor',
-      city: defaultAddr?.city || 'Mumbai',
-      state: defaultAddr?.state || 'Maharashtra',
-      postalCode: defaultAddr?.postalCode || '400013',
+      street: defaultAddr?.street || '',
+      apartment: defaultAddr?.apartment || '',
+      city: defaultAddr?.city || '',
+      state: defaultAddr?.state || '',
+      postalCode: defaultAddr?.postalCode || '',
       country: 'India',
-      phone: defaultAddr?.phone || user?.phone || '+91 9812345678',
+      phone: defaultAddr?.phone || user?.phone || '',
     };
   });
 
   // Automatic Pincode -> City & State Detection State
   const [pincodeStatus, setPincodeStatus] = useState(() => {
     const userAddr = user?.addresses?.find((a) => a.isDefault) || user?.addresses?.[0];
-    const pin = userAddr?.postalCode || '400013';
-    const city = userAddr?.city || 'Mumbai';
-    const state = userAddr?.state || 'Maharashtra';
+    const pin = userAddr?.postalCode || '';
+    const city = userAddr?.city || '';
+    const state = userAddr?.state || '';
     return {
       loading: false,
       success: Boolean(pin && city),
@@ -99,7 +99,7 @@ const Checkout = () => {
 
   // Payment Gateway Selection - 100% UPI QR Code Payment
   const [upiTab, setUpiTab] = useState('qr');
-  const [upiPhone, setUpiPhone] = useState(user?.phone || '+91 9812345678');
+  const [upiPhone, setUpiPhone] = useState(user?.phone || '');
   const [selectedUpiApp, setSelectedUpiApp] = useState('phonepe');
   const [upiId, setUpiId] = useState('kotichachiragr-1@okhdfcbank');
   const [upiVerified, setUpiVerified] = useState(false);
@@ -327,11 +327,11 @@ const Checkout = () => {
         setShippingAddress({
           street: addr.street || '',
           apartment: addr.apartment || '',
-          city: addr.city || 'Mumbai',
-          state: addr.state || 'Maharashtra',
-          postalCode: addr.postalCode || '400013',
+          city: addr.city || '',
+          state: addr.state || '',
+          postalCode: addr.postalCode || '',
           country: 'India',
-          phone: addr.phone || user.phone || '+91 9812345678',
+          phone: addr.phone || user.phone || '',
         });
       }
     }
@@ -400,31 +400,6 @@ const Checkout = () => {
     } else {
       setShippingAddress((prev) => ({ ...prev, [name]: value }));
     }
-  };
-
-  // Quick 1-Click Autofill Demo Customer
-  const handleAutofillDemo = async () => {
-    if (!isAuthenticated) {
-      const res = await login('customer@kirtistore.com', 'Customer@2026');
-      if (res?.success) {
-        setCustomerName(res.user.name);
-        setCustomerEmail(res.user.email);
-        setCustomerPhone(res.user.phone || '+91 9812345678');
-      }
-    }
-    setShippingAddress({
-      street: 'Flat 402, Royal Palms Residency, Senapati Bapat Marg',
-      apartment: 'Tower B, 4th Floor',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      postalCode: '400013',
-      country: 'India',
-      phone: '+91 9812345678',
-    });
-    setCustomerName('Pooja Sharma');
-    setCustomerEmail('customer@kirtistore.com');
-    setCustomerPhone('+91 9812345678');
-    showSuccess('Autofilled demo customer delivery address & contact details!');
   };
 
   // Validate address before advancing to payment gateway
@@ -518,20 +493,13 @@ const Checkout = () => {
 
   // Bank Authorization & Order Placement
   const handleExecutePayment = async () => {
-    // If not authenticated, automatically log in as demo customer so database order persists cleanly
-    if (!isAuthenticated) {
+    // Sync any local cart items to MongoDB server cart if authenticated
+    if (isAuthenticated) {
       try {
-        await login('customer@kirtistore.com', 'Customer@2026');
+        await syncLocalCartToServer();
       } catch (e) {
-        console.warn('Fallback login');
+        console.warn('Sync error:', e);
       }
-    }
-
-    // Sync any local cart items to MongoDB server cart
-    try {
-      await syncLocalCartToServer();
-    } catch (e) {
-      console.warn('Sync error:', e);
     }
 
     // Ensure any selected screenshot is uploaded before finalizing order
@@ -746,19 +714,11 @@ const Checkout = () => {
           <div className="lg:col-span-7 space-y-6">
             {/* Customer Contact Card */}
             <div className="bg-white rounded-3xl border border-surface-border p-6 sm:p-8 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-surface-border">
+              <div className="pb-3 border-b border-surface-border">
                 <h2 className="text-base sm:text-lg font-bold text-primary flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-secondary text-white text-xs font-bold flex items-center justify-center">1</span>
                   Recipient Contact Details
                 </h2>
-                <button
-                  type="button"
-                  onClick={handleAutofillDemo}
-                  className="text-xs font-bold text-secondary hover:underline flex items-center gap-1"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>Autofill Demo</span>
-                </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -767,7 +727,7 @@ const Checkout = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Pooja Sharma"
+                    placeholder="Enter your full name"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full mt-1.5 px-4 py-3 rounded-xl bg-slate-50/50 border border-surface-border text-charcoal font-medium focus:ring-2 focus:ring-secondary/20 focus:border-secondary focus:outline-none"
@@ -778,7 +738,7 @@ const Checkout = () => {
                   <input
                     type="tel"
                     required
-                    placeholder="+91 9812345678"
+                    placeholder="10-digit mobile number"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full mt-1.5 px-4 py-3 rounded-xl bg-slate-50/50 border border-surface-border text-charcoal font-medium focus:ring-2 focus:ring-secondary/20 focus:border-secondary focus:outline-none"
@@ -789,7 +749,7 @@ const Checkout = () => {
                   <input
                     type="email"
                     required
-                    placeholder="pooja@kirtistore.com"
+                    placeholder="name@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                     className="w-full mt-1.5 px-4 py-3 rounded-xl bg-slate-50/50 border border-surface-border text-charcoal font-medium focus:ring-2 focus:ring-secondary/20 focus:border-secondary focus:outline-none"
