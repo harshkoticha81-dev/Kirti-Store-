@@ -317,7 +317,7 @@ const Account = () => {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-surface-border gap-2 text-xs">
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-mono font-bold text-primary">Order #{order._id}</p>
+                            <p className="font-mono font-bold text-primary">{order.orderNumber || `Order #${order._id}`}</p>
                             <span className="px-2 py-0.5 rounded-md bg-surface-muted border border-surface-border text-[11px] font-medium text-charcoal">
                               {order.paymentMethod || 'Online'}
                             </span>
@@ -407,7 +407,7 @@ const Account = () => {
                         {/* Actions */}
                         <div className="flex items-center gap-2 flex-shrink-0 pt-2 sm:pt-0">
                           <Link
-                            to={`/track-order?orderId=${order._id}`}
+                            to={`/track-order?orderId=${order.orderNumber || order._id}`}
                             className="px-3 py-1.5 rounded-xl bg-surface-muted hover:bg-surface-border border border-surface-border text-xs font-bold text-primary flex items-center gap-1.5 transition-colors"
                           >
                             <Truck className="w-3.5 h-3.5 text-secondary" />

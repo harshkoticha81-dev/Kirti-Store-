@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Cart = require('../models/Cart');
@@ -7,6 +8,9 @@ const { calculateCartTransportation } = require('../utils/shippingCalculator');
 const whatsappService = require('../services/whatsappService');
 const pushNotificationService = require('../services/pushNotificationService');
 const { calculateRtoRisk } = require('../services/rtoService');
+
+// Helper to extract 10-digit mobile number
+const get10Digits = (val) => String(val || '').replace(/\D/g, '').slice(-10);
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -253,11 +257,23 @@ exports.getMyOrders = async (req, res, next) => {
 
 // @desc    Get single order details by ID
 // @route   GET /api/orders/:id
-// @access  Private (Owner or Admin)
+// @access  Private / Public (Owner, Admin, or verified order recipient)
 exports.getOrderById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const order = await Order.findById(id).populate('user', 'name email phone');
+    let query = {};
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      query = { _id: id };
+    } else {
+      query = {
+        $or: [
+          { orderNumber: new RegExp(`^${id}$`, 'i') },
+          { trackingAwb: new RegExp(`^${id}$`, 'i') }
+        ]
+      };
+    }
+
+    const order = await Order.findOne(query).populate('user', 'name email phone');
 
     if (!order) {
       return res.status(404).json({
@@ -266,12 +282,22 @@ exports.getOrderById = async (req, res, next) => {
       });
     }
 
-    // Only owner or admin can view
-    if (order.user._id.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied to this order.'
-      });
+    // If user is authenticated and not admin, verify ownership
+    if (req.user && req.user.role !== 'admin') {
+      const orderUserId = order.user ? (order.user._id || order.user).toString() : null;
+      const userPhoneDigits = get10Digits(req.user.phone);
+      const orderPhoneDigits = get10Digits(order.customerPhone || order.shippingAddress?.phone);
+      const isEmailMatch = (order.customerEmail || '').toLowerCase() === (req.user.email || '').toLowerCase();
+      const isPhoneMatch = Boolean(userPhoneDigits && orderPhoneDigits && userPhoneDigits === orderPhoneDigits);
+      const isUserMatch = orderUserId && orderUserId === req.user.id;
+
+      if (!isUserMatch && !isEmailMatch && !isPhoneMatch) {
+        return res.status(403).json({
+          success: false,
+          mismatch: true,
+          message: 'Access denied: This order belongs to another customer account.'
+        });
+      }
     }
 
     res.status(200).json({
@@ -283,9 +309,9 @@ exports.getOrderById = async (req, res, next) => {
   }
 };
 
-// @desc    Track order publicly by Order ID and Phone / Email
+// @desc    Track order publicly by Order ID and Phone / Email with real-time verification
 // @route   GET /api/orders/track
-// @access  Public
+// @access  Public (with optional auth detection)
 exports.trackOrder = async (req, res, next) => {
   try {
     const { orderId, phone, email } = req.query;
@@ -293,85 +319,112 @@ exports.trackOrder = async (req, res, next) => {
     if (!orderId && !phone && !email) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide an Order ID or registered Phone/Email.'
+        message: 'Please provide an Order ID / AWB Code or registered phone number.'
       });
     }
 
-    let order = null;
     const cleanId = (orderId || '').trim();
+    const cleanPhone = (phone || '').trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
 
+    // Helper to get last 10 digits of mobile number
+    const get10Digits = (val) => String(val || '').replace(/\D/g, '').slice(-10);
+
+    let order = null;
+
+    // 1. Direct MongoDB ID match
     if (cleanId.match(/^[0-9a-fA-F]{24}$/)) {
       order = await Order.findById(cleanId);
     }
 
+    // 2. Match by unique orderNumber or trackingAwb
     if (!order && cleanId) {
-      const allOrders = await Order.find().sort({ createdAt: -1 }).limit(100);
-      order = allOrders.find(o => 
+      order = await Order.findOne({
+        $or: [
+          { orderNumber: new RegExp(`^${cleanId}$`, 'i') },
+          { trackingAwb: new RegExp(`^${cleanId}$`, 'i') }
+        ]
+      });
+    }
+
+    // 3. Match by ID suffix or fallback search
+    if (!order && cleanId) {
+      const allRecent = await Order.find().sort({ createdAt: -1 }).limit(100);
+      order = allRecent.find(o => 
+        (o.orderNumber && o.orderNumber.toUpperCase().includes(cleanId.toUpperCase())) ||
+        (o.trackingAwb && o.trackingAwb.toUpperCase().includes(cleanId.toUpperCase())) ||
         o._id.toString().toUpperCase().endsWith(cleanId.toUpperCase()) ||
         o._id.toString() === cleanId
       );
     }
 
-    if (!order && (phone || email)) {
+    // 4. If no Order ID provided, lookup latest order by phone or email directly
+    if (!order && !cleanId && (cleanPhone || cleanEmail)) {
       const q = {};
-      if (phone) q.customerPhone = new RegExp(phone.trim().replace(/\+/g, '\\+'), 'i');
-      if (email) q.customerEmail = new RegExp(email.trim(), 'i');
+      if (cleanPhone) {
+        const digits = get10Digits(cleanPhone);
+        q.$or = [
+          { customerPhone: new RegExp(digits, 'i') },
+          { 'shippingAddress.phone': new RegExp(digits, 'i') }
+        ];
+      }
+      if (cleanEmail) {
+        q.customerEmail = new RegExp(`^${cleanEmail}$`, 'i');
+      }
       order = await Order.findOne(q).sort({ createdAt: -1 });
     }
 
-    if (!order && (cleanId.toLowerCase() === 'demo' || cleanId.toLowerCase() === 'latest')) {
-      order = await Order.findOne().sort({ createdAt: -1 });
-      if (!order) {
-        order = {
-          _id: '6ad86700f1245a89b0991201',
-          createdAt: new Date(Date.now() - 30 * 3600000),
-          customerName: 'Aarav Patel',
-          customerEmail: 'aarav.patel@kirtistore.com',
-          customerPhone: '919876543210',
-          shippingAddress: {
-            street: '14, Swaminarayan Nagar, Station Road',
-            apartment: 'Near Sardar Patel Chowk',
-            city: 'Dhoraji',
-            state: 'Gujarat',
-            postalCode: '360410',
-            country: 'India'
-          },
-          items: [
-            {
-              name: 'Kirti ProMix Copper Motor Mixer Grinder',
-              SKU: 'KRT-MX-750',
-              image: 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80',
-              price: 3499,
-              quantity: 1,
-              lineTotal: 3499
-            }
-          ],
-          subtotal: 3499,
-          shippingFee: 0,
-          tax: 175,
-          totalAmount: 3674,
-          paymentMethod: 'UPI',
-          paymentStatus: 'Completed',
-          paymentId: 'UPI-DEMO-98231',
-          upiTransactionId: '429188219034',
-          orderStatus: 'Shipped',
-          courier: 'Blue Dart Express',
-          trackingAwb: 'KRT983412IN',
-          deliveryOtp: '4829',
-          statusTimeline: [
-            { status: 'Confirmed', timestamp: new Date(Date.now() - 30 * 3600000), note: 'UPI Payment verified' },
-            { status: 'Processing', timestamp: new Date(Date.now() - 18 * 3600000), note: 'Packed at Mumbai Logistics Hub' },
-            { status: 'Shipped', timestamp: new Date(Date.now() - 4 * 3600000), note: 'Out for doorstep delivery' }
-          ]
-        };
-      }
-    }
-
+    // If order not found
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'No order found matching the provided details. Please verify your Order ID and phone number.'
+        message: 'No shipment found matching the provided Order ID / Tracking Number. Please check and try again.'
       });
+    }
+
+    // 5. VALIDATION: Check User & Order ID Match
+    const orderPhoneDigits = get10Digits(order.customerPhone || order.shippingAddress?.phone);
+    const orderEmailLower = (order.customerEmail || '').toLowerCase();
+    const orderUserId = order.user ? order.user.toString() : '';
+
+    // Check Phone mismatch if phone provided
+    if (cleanPhone) {
+      const inputDigits = get10Digits(cleanPhone);
+      if (inputDigits && orderPhoneDigits && inputDigits !== orderPhoneDigits) {
+        return res.status(403).json({
+          success: false,
+          mismatch: true,
+          message: 'Order ID and registered mobile number do not match. Please verify your details.'
+        });
+      }
+    }
+
+    // Check Email mismatch if email provided
+    if (cleanEmail) {
+      if (cleanEmail !== orderEmailLower) {
+        return res.status(403).json({
+          success: false,
+          mismatch: true,
+          message: 'Order ID and registered email address do not match. Please verify your details.'
+        });
+      }
+    }
+
+    // If user is logged in (and not admin), verify ownership
+    if (req.user && req.user.role !== 'admin') {
+      const userPhoneDigits = get10Digits(req.user.phone);
+      const userEmailLower = (req.user.email || '').toLowerCase();
+      const isUserMatch = (orderUserId && orderUserId === req.user.id) ||
+                          (orderEmailLower && orderEmailLower === userEmailLower) ||
+                          (orderPhoneDigits && userPhoneDigits && orderPhoneDigits === userPhoneDigits);
+
+      if (!isUserMatch && !cleanPhone && !cleanEmail) {
+        return res.status(403).json({
+          success: false,
+          mismatch: true,
+          message: 'This order does not belong to your logged-in account. Please enter the registered phone number to verify access.'
+        });
+      }
     }
 
     const courierPartners = ['Blue Dart Express', 'Delhivery Surface', 'XpressBees Priority', 'DTDC Prime'];
@@ -438,6 +491,7 @@ exports.trackOrder = async (req, res, next) => {
       success: true,
       order: {
         _id: order._id,
+        orderNumber: order.orderNumber || `KRT-ORD-${order._id.toString().slice(-8).toUpperCase()}`,
         createdAt: order.createdAt,
         customerName: order.customerName,
         customerEmail: order.customerEmail,
@@ -504,6 +558,8 @@ exports.getAllOrders = async (req, res, next) => {
     if (search && search.trim() !== '') {
       const searchRegex = new RegExp(search.trim(), 'i');
       query.$or = [
+        { orderNumber: searchRegex },
+        { trackingAwb: searchRegex },
         { customerName: searchRegex },
         { customerEmail: searchRegex },
         { customerPhone: searchRegex },

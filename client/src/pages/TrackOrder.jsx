@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import TaxInvoiceModal from '../components/common/TaxInvoiceModal';
 import { downloadInvoicePDF } from '../utils/invoiceGenerator';
 import { openWhatsAppDirect } from '../utils/whatsappUtils';
@@ -42,16 +43,19 @@ const TrackOrder = () => {
   const [searchParams] = useSearchParams();
   const urlOrderId = searchParams.get('orderId') || '';
   const { success: showSuccess, error: showError } = useToast();
+  const { user } = useAuth();
 
   const [orderId, setOrderId] = useState(urlOrderId);
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isMismatchError, setIsMismatchError] = useState(false);
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   const [copiedAwb, setCopiedAwb] = useState(false);
+  const [copiedOrderNo, setCopiedOrderNo] = useState(false);
 
   const handleDownloadInvoice = () => {
     if (!order) return;
@@ -73,6 +77,7 @@ const TrackOrder = () => {
     try {
       setLoading(true);
       setErrorMessage('');
+      setIsMismatchError(false);
       const params = {};
       if (targetId) params.orderId = targetId;
       if (targetPhone) params.phone = targetPhone;
@@ -83,6 +88,8 @@ const TrackOrder = () => {
       }
     } catch (err) {
       setOrder(null);
+      const isMismatch = Boolean(err.response?.data?.mismatch);
+      setIsMismatchError(isMismatch);
       setErrorMessage(
         err.response?.data?.message || 'Unable to locate order. Please check the Order ID and try again.'
       );
@@ -95,9 +102,6 @@ const TrackOrder = () => {
     if (urlOrderId) {
       setOrderId(urlOrderId);
       fetchTrackData(urlOrderId, '');
-    } else {
-      // Auto fetch demo if no order ID provided in URL
-      fetchTrackData('demo', '');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [urlOrderId]);
@@ -111,9 +115,12 @@ const TrackOrder = () => {
     fetchTrackData(orderId.trim(), phone.trim());
   };
 
-  const handleDemoFill = () => {
-    setOrderId('demo');
-    fetchTrackData('demo', '');
+  const handleCopyOrderNo = (num) => {
+    if (!num) return;
+    navigator.clipboard.writeText(num);
+    setCopiedOrderNo(true);
+    showSuccess('Unique Order ID copied to clipboard!');
+    setTimeout(() => setCopiedOrderNo(false), 2000);
   };
 
   const handleCopyAwb = (awb) => {
@@ -127,8 +134,9 @@ const TrackOrder = () => {
   const handleShareTrackingWhatsApp = () => {
     if (!order) return;
     const url = window.location.href;
+    const trackingId = order.orderNumber || `#${order._id?.toString()?.substring(0, 8)?.toUpperCase()}`;
     const text = `🚚 *Track My Kirti Store Appliance Order*
-Order #${order._id?.toString()?.substring(0, 8)?.toUpperCase()}
+Order ID: ${trackingId}
 Courier: ${order.courier || 'Blue Dart Express'} (AWB: ${order.trackingAwb || 'KRT983412IN'})
 Current Status: ${order.orderStatus}
 Shipment Link: ${url}`;
@@ -178,24 +186,33 @@ Shipment Link: ${url}`;
 
       {/* Search Tracker Input Card */}
       <div className="max-w-3xl mx-auto bg-white rounded-3xl border border-surface-border p-6 shadow-sm space-y-4">
+        {user && (
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50/80 border border-blue-100 text-xs text-secondary font-medium">
+            <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+            <span>
+              Signed in as <strong className="text-primary">{user.name}</strong> ({user.phone || user.email}). Your orders are validated automatically.
+            </span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-primary uppercase tracking-wider mb-1.5">
-                Order ID / AWB Code
+                Unique Order ID / AWB Code
               </label>
               <input
                 type="text"
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
-                placeholder="e.g. 6ad867... or KRT983412IN"
+                placeholder="e.g. KRT-ORD-213781-2309 or AWB"
                 className="w-full px-4 py-2.5 bg-surface-muted rounded-xl border border-surface-border text-sm text-primary placeholder-charcoal-light focus:outline-none focus:ring-2 focus:ring-secondary/20 font-medium"
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-primary uppercase tracking-wider mb-1.5">
-                Registered Phone (Optional)
+                Registered Mobile Number
               </label>
               <input
                 type="tel"
@@ -204,34 +221,48 @@ Shipment Link: ${url}`;
                 placeholder="+91 9812345678"
                 className="w-full px-4 py-2.5 bg-surface-muted rounded-xl border border-surface-border text-sm text-primary placeholder-charcoal-light focus:outline-none focus:ring-2 focus:ring-secondary/20 font-medium"
               />
+              <span className="text-[10px] text-charcoal-light block mt-1">
+                Enter registered phone number to verify ownership
+              </span>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-            <button
-              type="button"
-              onClick={handleDemoFill}
-              className="text-xs font-bold text-secondary hover:text-secondary-700 hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Try Demo Order</span>
-            </button>
-
+          <div className="flex items-center justify-end gap-3 pt-1">
             <button
               type="submit"
               disabled={loading}
               className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-zinc-800 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-              <span>{loading ? 'Searching Shipment...' : 'Track Appliance'}</span>
+              <span>{loading ? 'Verifying & Tracking...' : 'Track Appliance'}</span>
             </button>
           </div>
         </form>
 
         {errorMessage && (
-          <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{errorMessage}</span>
+          <div className={`p-4 rounded-2xl border text-xs flex items-start gap-3 transition-all ${
+            isMismatchError
+              ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-sm'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              isMismatchError ? 'bg-amber-200 text-amber-900' : 'bg-rose-100 text-rose-700'
+            }`}>
+              <AlertCircle className="w-4 h-4" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="font-bold text-xs uppercase tracking-wide">
+                {isMismatchError ? 'Security Verification Mismatch' : 'Shipment Not Found'}
+              </p>
+              <p className="text-xs leading-relaxed font-medium">
+                {errorMessage}
+              </p>
+              {isMismatchError && (
+                <p className="text-[11px] opacity-80 pt-0.5">
+                  Verification Rule: Every Order ID is strictly tied to a unique user and phone number. To protect customer privacy, both must match.
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -246,15 +277,25 @@ Shipment Link: ${url}`;
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-charcoal-light uppercase tracking-wider">
-                    Order Reference
+                    Unique Order ID
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-secondary border border-blue-200">
                     {order.orderStatus}
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-primary mt-1">
-                  #{order._id?.toString()?.substring(0, 8)?.toUpperCase()}
-                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <h2 className="text-xl sm:text-2xl font-black text-primary font-mono">
+                    {order.orderNumber || `#${order._id?.toString()?.substring(0, 8)?.toUpperCase()}`}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyOrderNo(order.orderNumber || order._id)}
+                    className="p-1 text-slate-400 hover:text-secondary rounded-lg transition-colors cursor-pointer"
+                    title="Copy Unique Order ID"
+                  >
+                    {copiedOrderNo ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
                 <p className="text-xs text-charcoal-light mt-0.5">
                   Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', {
                     day: 'numeric',

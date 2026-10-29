@@ -198,9 +198,12 @@ const OrderSuccess = () => {
         <p className="text-sm text-charcoal-light max-w-md mx-auto">
           Your order has been placed successfully and is now being prepared for express dispatch.
         </p>
-        <p className="text-xs font-mono font-bold bg-white px-4 py-2 rounded-full inline-block border border-surface-border text-charcoal">
-          Order ID: #{order?._id}
-        </p>
+        <div className="flex items-center justify-center gap-2">
+          <p className="text-xs font-mono font-bold bg-white px-4 py-2 rounded-full inline-flex items-center gap-2 border border-surface-border text-charcoal shadow-sm">
+            <span>Tracking ID:</span>
+            <span className="text-secondary font-bold">{order?.orderNumber || `#${order?._id}`}</span>
+          </p>
+        </div>
       </div>
 
       {/* Order Card */}
@@ -443,7 +446,7 @@ const OrderSuccess = () => {
         {/* Action navigation */}
         <div className="pt-6 border-t border-surface-border flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            to={`/track-order?orderId=${order?._id}`}
+            to={`/track-order?orderId=${order?.orderNumber || order?._id}`}
             className="px-6 py-3 rounded-xl bg-secondary hover:bg-secondary-600 text-white font-bold text-sm text-center shadow transition-colors flex items-center justify-center gap-2"
           >
             <Truck className="w-4 h-4" />

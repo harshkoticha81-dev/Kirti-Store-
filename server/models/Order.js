@@ -36,10 +36,16 @@ const OrderItemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const OrderSchema = new mongoose.Schema({
+  orderNumber: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   customerName: {
     type: String,
@@ -199,9 +205,14 @@ const OrderSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Auto populate status timeline, AWB, delivery OTP, and estimated delivery on creation
+// Auto populate status timeline, orderNumber, AWB, delivery OTP, and estimated delivery on creation
 OrderSchema.pre('save', function(next) {
   if (this.isNew) {
+    if (!this.orderNumber) {
+      const timePart = Date.now().toString().slice(-6);
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      this.orderNumber = `KRT-ORD-${timePart}-${randomSuffix}`;
+    }
     if (!this.statusTimeline || this.statusTimeline.length === 0) {
       this.statusTimeline = [{
         status: this.orderStatus,
@@ -224,7 +235,10 @@ OrderSchema.pre('save', function(next) {
   next();
 });
 
+OrderSchema.index({ trackingAwb: 1 });
 OrderSchema.index({ user: 1 });
+OrderSchema.index({ customerPhone: 1 });
+OrderSchema.index({ customerEmail: 1 });
 OrderSchema.index({ orderStatus: 1 });
 OrderSchema.index({ upiTransactionId: 1 });
 OrderSchema.index({ 'rtoRisk.riskLevel': 1 });

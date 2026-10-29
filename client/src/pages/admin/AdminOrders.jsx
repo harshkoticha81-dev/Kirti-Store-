@@ -429,11 +429,11 @@ const AdminOrders = () => {
                     {/* Order ID & Date */}
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-bold text-white text-xs">
-                          #{ord._id.substring(0, 8)}...
+                        <span className="font-mono font-bold text-white text-xs" title={ord.orderNumber || ord._id}>
+                          {ord.orderNumber || `#${ord._id.substring(0, 8)}...`}
                         </span>
                         <button
-                          onClick={() => handleCopyText(ord._id, ord._id)}
+                          onClick={() => handleCopyText(ord.orderNumber || ord._id, ord._id)}
                           title="Copy Full Order ID"
                           className="text-slate-500 hover:text-slate-300 transition-colors"
                         >
@@ -720,9 +720,11 @@ const AdminOrders = () => {
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-black text-white text-lg">Order #{selectedOrder._id}</h3>
+                  <h3 className="font-black text-white text-lg">
+                    {selectedOrder.orderNumber || `Order #${selectedOrder._id}`}
+                  </h3>
                   <button
-                    onClick={() => handleCopyText(selectedOrder._id, 'modal-id')}
+                    onClick={() => handleCopyText(selectedOrder.orderNumber || selectedOrder._id, 'modal-id')}
                     className="text-slate-400 hover:text-white"
                     title="Copy Order ID"
                   >

@@ -11,13 +11,13 @@ const {
 } = require('../controllers/orderController');
 const { protect, adminOnly, optionalAuth } = require('../middleware/authMiddleware');
 
-// Public order tracking route
-router.get('/track', trackOrder);
+// Public order tracking route (with optional auth detection)
+router.get('/track', optionalAuth, trackOrder);
 
 // Customer order routes
 router.post('/', optionalAuth, createOrder);
 router.get('/my-orders', protect, getMyOrders);
-router.get('/:id', protect, getOrderById);
+router.get('/:id', optionalAuth, getOrderById);
 router.patch('/:id/payment-proof', protect, updatePaymentProof);
 
 // Admin order routes
