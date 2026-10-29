@@ -9,7 +9,7 @@ const { isBigAppliance } = require('../utils/shippingCalculator');
 // Helper to safely process and persist images (resolves base64 data URIs to files in MongoDB & uploads folder, filters empty strings)
 const processProductImages = async (imagesArray) => {
   if (!imagesArray) {
-    return ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'];
+    return [];
   }
 
   const list = Array.isArray(imagesArray) ? imagesArray : [imagesArray];
@@ -17,7 +17,7 @@ const processProductImages = async (imagesArray) => {
   const uploadDir = path.join(__dirname, '../public/uploads');
 
   for (let img of list) {
-    if (!img || typeof img !== 'string' || !img.trim()) continue;
+    if (!img || typeof img !== 'string' || !img.trim() || img.includes('photo-1570222094114-d054a817e56b')) continue;
     img = img.trim();
 
     // If it's a base64 image string, extract and save to MongoDB Atlas & disk
@@ -64,9 +64,7 @@ const processProductImages = async (imagesArray) => {
     processed.push(img);
   }
 
-  return processed.length > 0
-    ? processed
-    : ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'];
+  return processed;
 };
 
 // Helper to generate a URL slug
@@ -203,13 +201,22 @@ exports.getProducts = async (req, res, next) => {
       .skip(skip)
       .limit(limitNum);
 
+    // Clean out any legacy default placeholder image
+    const sanitizedProducts = products.map(prod => {
+      const pObj = prod.toObject ? prod.toObject() : prod;
+      if (Array.isArray(pObj.images)) {
+        pObj.images = pObj.images.filter(img => typeof img === 'string' && !img.includes('photo-1570222094114-d054a817e56b'));
+      }
+      return pObj;
+    });
+
     res.status(200).json({
       success: true,
-      count: products.length,
+      count: sanitizedProducts.length,
       total,
       totalPages: Math.ceil(total / limitNum) || 1,
       currentPage: pageNum,
-      products
+      products: sanitizedProducts
     });
   } catch (error) {
     next(error);
@@ -226,10 +233,18 @@ exports.getFeaturedProducts = async (req, res, next) => {
       .limit(8)
       .sort({ rating: -1, createdAt: -1 });
 
+    const sanitizedProducts = products.map(prod => {
+      const pObj = prod.toObject ? prod.toObject() : prod;
+      if (Array.isArray(pObj.images)) {
+        pObj.images = pObj.images.filter(img => typeof img === 'string' && !img.includes('photo-1570222094114-d054a817e56b'));
+      }
+      return pObj;
+    });
+
     res.status(200).json({
       success: true,
-      count: products.length,
-      products
+      count: sanitizedProducts.length,
+      products: sanitizedProducts
     });
   } catch (error) {
     next(error);
@@ -259,10 +274,7 @@ exports.getProductById = async (req, res, next) => {
 
     // Sanitize images array
     if (Array.isArray(product.images)) {
-      product.images = product.images.filter(img => typeof img === 'string' && img.trim().length > 0);
-      if (product.images.length === 0) {
-        product.images = ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'];
-      }
+      product.images = product.images.filter(img => typeof img === 'string' && img.trim().length > 0 && !img.includes('photo-1570222094114-d054a817e56b'));
     }
 
     // Fetch related products from same category

@@ -79,7 +79,7 @@ const Compare = () => {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <img
-                    src={p.images?.[0] || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=100&q=80'}
+                    src={getSafeProductImageUrl(p.images?.[0], p.categoryName || p.name)}
                     alt={p.name}
                     className="w-12 h-12 rounded-xl object-cover border border-surface-border"
                   />

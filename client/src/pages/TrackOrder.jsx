@@ -31,6 +31,7 @@ import { useAuth } from '../context/AuthContext';
 import TaxInvoiceModal from '../components/common/TaxInvoiceModal';
 import { downloadInvoicePDF } from '../utils/invoiceGenerator';
 import { openWhatsAppDirect } from '../utils/whatsappUtils';
+import { getSafeProductImageUrl } from '../utils/imageUtils';
 
 const statusSteps = [
   { key: 'Confirmed', label: 'Order Confirmed', desc: 'Verified and authorized' },
@@ -498,7 +499,7 @@ Shipment Link: ${url}`;
                 {(order.items || []).map((item, i) => (
                   <div key={i} className="py-4 first:pt-0 last:pb-0 flex items-center gap-4">
                     <img
-                      src={item.image || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=150&q=80'}
+                      src={getSafeProductImageUrl(item.image, item.name)}
                       alt={item.name}
                       className="w-16 h-16 rounded-xl object-cover border border-surface-border flex-shrink-0"
                     />

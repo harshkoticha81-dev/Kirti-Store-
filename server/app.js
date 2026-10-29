@@ -96,8 +96,8 @@ app.get('/uploads/:filename', async (req, res, next) => {
     console.error('[Upload Fetch Error from MongoDB]:', dbErr.message);
   }
 
-  // 3. Guaranteed Safe Fallback: NEVER show broken image or 404
-  res.redirect('https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80');
+  // 3. If file not found, return 404
+  res.status(404).json({ success: false, message: 'Image not found' });
 });
 
 // Fallback static middleware

@@ -48,6 +48,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { lookupPincode, isValidPincode } from '../utils/pincodeService';
 import { isBigAppliance } from '../utils/shippingCalculator';
+import { getSafeProductImageUrl } from '../utils/imageUtils';
 
 const Checkout = () => {
   const { cart, clearCart, syncLocalCartToServer } = useCart();
@@ -1149,7 +1150,7 @@ const Checkout = () => {
                   <div key={item._id} className="pt-3 first:pt-0 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-3 overflow-hidden">
                       <img
-                        src={item.product?.image || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=200&q=80'}
+                        src={getSafeProductImageUrl(item.product?.image || item.product?.images?.[0], item.product?.categoryName || item.product?.name)}
                         alt={item.product?.name}
                         className="w-14 h-14 rounded-xl object-cover border border-surface-border flex-shrink-0"
                       />
@@ -1695,7 +1696,7 @@ const Checkout = () => {
                   <div key={item._id} className="pt-3 first:pt-0 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2.5 overflow-hidden">
                       <img
-                        src={item.product?.image || 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=200&q=80'}
+                        src={getSafeProductImageUrl(item.product?.image || item.product?.images?.[0], item.product?.categoryName || item.product?.name)}
                         alt=""
                         className="w-12 h-12 rounded-xl object-cover border border-surface-border flex-shrink-0"
                       />

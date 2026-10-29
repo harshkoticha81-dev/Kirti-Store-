@@ -47,7 +47,7 @@ const AdminProductForm = () => {
     originalPrice: '',
     stockQuantity: '',
     lowStockThreshold: 5,
-    images: ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'],
+    images: [],
     specifications: [
       { key: 'Motor Power', value: '750W Pure Copper' },
       { key: 'Voltage', value: '230V ~ 50Hz' }
@@ -97,8 +97,8 @@ const AdminProductForm = () => {
         if (res.data.success) {
           const p = res.data.product;
           const rawImages = Array.isArray(p.images)
-            ? p.images.filter(img => typeof img === 'string' && img.trim().length > 0)
-            : (p.image ? [p.image] : []);
+            ? p.images.filter(img => typeof img === 'string' && img.trim().length > 0 && !img.includes('photo-1570222094114-d054a817e56b'))
+            : (p.image && !p.image.includes('photo-1570222094114-d054a817e56b') ? [p.image] : []);
 
           setFormData({
             name: p.name || '',
@@ -260,7 +260,7 @@ const AdminProductForm = () => {
       const payload = {
         ...formData,
         category: categoryVal,
-        images: cleanImages.length > 0 ? cleanImages : ['https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80'],
+        images: cleanImages.filter(img => !img.includes('photo-1570222094114-d054a817e56b')),
         sellingPrice: Number(formData.sellingPrice),
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : null,
         stockQuantity: Number(formData.stockQuantity),

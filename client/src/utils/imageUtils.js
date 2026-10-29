@@ -24,6 +24,9 @@ export const getApplianceFallbackImage = (categoryOrName = '') => {
 };
 
 export const getSafeProductImageUrl = (imageSrc, categoryOrName = '') => {
-  if (!imageSrc) return getApplianceFallbackImage(categoryOrName);
-  return getServerAssetUrl(imageSrc);
+  if (!imageSrc || (typeof imageSrc === 'string' && (imageSrc.includes('photo-1570222094114-d054a817e56b') || !imageSrc.trim()))) {
+    return getApplianceFallbackImage(categoryOrName);
+  }
+  const url = getServerAssetUrl(imageSrc);
+  return url || getApplianceFallbackImage(categoryOrName);
 };

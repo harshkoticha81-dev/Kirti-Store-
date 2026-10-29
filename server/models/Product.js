@@ -71,10 +71,10 @@ const ProductSchema = new mongoose.Schema({
     default: 5,
     min: [0, 'Threshold cannot be negative']
   },
-  images: [{
-    type: String,
-    required: true
-  }],
+  images: {
+    type: [String],
+    default: []
+  },
   specifications: [SpecificationSchema],
   warranty: {
     type: String,

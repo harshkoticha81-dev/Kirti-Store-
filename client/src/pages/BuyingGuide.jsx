@@ -55,14 +55,14 @@ const recommendationMap = {
     desc: 'Equipped with 100% pure copper winding, 3 heavy-gauge flow-breaker jars, and dual-fan overload protection.',
     price: '₹3,499',
     slug: 'kirti-promix-750w-mixer-grinder',
-    image: 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=400&q=80'
+    image: '/images/appliances/mixer.svg'
   },
   'mixers-grinders-quiet': {
     title: 'Kirti Silenta 1000W Ultra-Quiet Mixer Grinder',
     desc: 'Dual acoustic sound-dampening hood cutting grinding noise by 60% while delivering commercial 1000W torque.',
     price: '₹4,999',
     slug: 'kirti-silenta-1000w-mixer-grinder',
-    image: 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=400&q=80'
+    image: '/images/appliances/mixer.svg'
   },
   'air-fryer': {
     title: 'Kirti AeroCrisp 6.5L Digital Air Fryer',

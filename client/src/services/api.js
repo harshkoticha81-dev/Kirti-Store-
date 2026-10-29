@@ -18,8 +18,8 @@ export const getApiBaseUrl = () => {
 
 // Helper for images and static assets from server
 export const getServerAssetUrl = (path = '') => {
-  if (!path || typeof path !== 'string' || !path.trim()) {
-    return 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=600&q=80';
+  if (!path || typeof path !== 'string' || !path.trim() || path.includes('photo-1570222094114-d054a817e56b')) {
+    return '';
   }
   const trimmed = path.trim();
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
