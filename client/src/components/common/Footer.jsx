@@ -99,6 +99,7 @@ const Footer = () => {
             <h4 className="text-white text-sm font-bold uppercase tracking-wider">Customer Care</h4>
             <ul className="space-y-2 text-sm text-zinc-400">
               <li><Link to="/track-order" className="hover:text-white transition-colors">Live Shipment Tracker</Link></li>
+              <li><Link to="/stores" className="hover:text-white transition-colors text-amber-400 font-semibold">Store Locator & Service Centers</Link></li>
               <li><Link to="/compare" className="hover:text-white transition-colors">Compare Appliances</Link></li>
               <li><Link to="/buying-guide" className="hover:text-white transition-colors">Culinary Buying Guide</Link></li>
               <li><Link to="/warranty-registration" className="hover:text-white transition-colors text-amber-400 font-semibold">Warranty Registration & Certificate</Link></li>

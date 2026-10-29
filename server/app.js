@@ -18,6 +18,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const pincodeRoutes = require('./routes/pincodeRoutes');
 const warrantyRoutes = require('./routes/warrantyRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const storeRoutes = require('./routes/storeRoutes');
 
 const app = express();
 
@@ -136,6 +137,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/pincode', pincodeRoutes);
 app.use('/api/warranty', warrantyRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/stores', storeRoutes);
 
 // Error Handling
 app.use(notFound);

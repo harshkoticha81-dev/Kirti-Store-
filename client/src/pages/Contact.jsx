@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Phone, MapPin, Clock, Send, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Phone, MapPin, Clock, Send, MessageSquare, CheckCircle2, Navigation, Store } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 const Contact = () => {
@@ -64,6 +65,29 @@ const Contact = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Interactive Store Locator Card */}
+          <div className="bg-gradient-to-br from-zinc-950 to-zinc-900 text-white p-6 rounded-3xl border border-zinc-800 shadow-md space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                <Store className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-white">Find Nearest Store or Service Center</h4>
+                <p className="text-xs text-zinc-400">8+ outlets with live Google Maps navigation</p>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Need immediate mixer repair, original spare parts, or want to test kitchen appliances in person?
+            </p>
+            <Link
+              to="/stores"
+              className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition-colors shadow-sm"
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Open Interactive Store Locator</span>
+            </Link>
           </div>
         </div>
 

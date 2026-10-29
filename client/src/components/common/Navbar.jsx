@@ -16,7 +16,8 @@ import {
   Truck,
   BookOpen,
   ArrowRight,
-  Star
+  Star,
+  MapPin
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -92,6 +93,7 @@ const Navbar = () => {
     { name: 'Shop All', path: '/shop' },
     { name: 'Categories', path: '/shop?view=categories' },
     { name: 'Track Order', path: '/track-order' },
+    { name: 'Store Locator', path: '/stores', badge: 'Map' },
     { name: 'Deals', path: '/deals' },
     { name: 'About Us', path: '/about' },
     { name: 'Contact', path: '/contact' },

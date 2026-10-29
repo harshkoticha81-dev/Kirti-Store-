@@ -23,6 +23,7 @@ import Compare from './pages/Compare';
 import TrackOrder from './pages/TrackOrder';
 import BuyingGuide from './pages/BuyingGuide';
 import WarrantyRegistration from './pages/WarrantyRegistration';
+import StoreLocator from './pages/StoreLocator';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -58,6 +59,8 @@ const App = () => {
         <Route path="/buying-guide" element={<BuyingGuide />} />
         <Route path="/warranty" element={<WarrantyRegistration />} />
         <Route path="/warranty-registration" element={<WarrantyRegistration />} />
+        <Route path="/stores" element={<StoreLocator />} />
+        <Route path="/store-locator" element={<StoreLocator />} />
         <Route path="/spares" element={<Navigate to="/shop" replace />} />
         <Route path="/spare-parts" element={<Navigate to="/shop" replace />} />
         <Route path="/deals" element={<Deals />} />
