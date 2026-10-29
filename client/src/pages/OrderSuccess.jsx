@@ -18,23 +18,14 @@ import {
   UploadCloud,
   X,
   Edit3,
-  MessageSquare,
   Award,
   Sparkles,
-  ExternalLink,
-  Share2,
   AlertCircle
 } from 'lucide-react';
 import api from '../services/api';
 import TaxInvoiceModal from '../components/common/TaxInvoiceModal';
 import { downloadInvoicePDF } from '../utils/invoiceGenerator';
 import { useToast } from '../context/ToastContext';
-import {
-  normalizeWhatsAppPhone,
-  openWhatsAppDirect,
-  formatOrderWhatsAppMessage,
-  getWhatsAppDirectLink
-} from '../utils/whatsappUtils';
 
 const OrderSuccess = () => {
   const { id } = useParams();
@@ -423,85 +414,6 @@ const OrderSuccess = () => {
             ))}
           </div>
         </div>
-
-        {/* WhatsApp Automated Updates & Support Card */}
-        {(() => {
-          const customerPhone = order?.customerPhone || order?.shippingAddress?.phone || '';
-          const normalizedPhone = normalizeWhatsAppPhone(customerPhone);
-          const hasValidPhone = Boolean(normalizedPhone);
-
-          const handleOpenReceiptOnWhatsApp = () => {
-            if (!hasValidPhone) {
-              showError('No valid customer phone number found on this order.');
-              return;
-            }
-            const msg = formatOrderWhatsAppMessage(order);
-            const opened = openWhatsAppDirect(customerPhone, msg);
-            if (opened) {
-              showSuccess(`Opening WhatsApp chat for +${normalizedPhone}...`);
-            } else {
-              showError('Pop-up blocked. Please enable pop-ups to open WhatsApp.');
-            }
-          };
-
-          const handleCopyWhatsAppReceipt = () => {
-            const msg = formatOrderWhatsAppMessage(order);
-            navigator.clipboard.writeText(msg);
-            showSuccess('Complete WhatsApp order receipt copied to clipboard!');
-          };
-
-          return (
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-white to-emerald-50/60 border border-emerald-200/90 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-600/20">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-emerald-950 text-sm">
-                        WhatsApp Order Alerts & Direct Receipt
-                      </span>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded-full">
-                        Instant Delivery
-                      </span>
-                    </div>
-                    <p className="text-xs text-emerald-800 mt-0.5">
-                      Live dispatch & delivery updates linked to{' '}
-                      <b className="font-bold text-emerald-950">
-                        {hasValidPhone ? `+${normalizedPhone}` : (customerPhone || 'your mobile')}
-                      </b>
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-emerald-100 text-xs">
-                {hasValidPhone && (
-                  <button
-                    type="button"
-                    onClick={handleOpenReceiptOnWhatsApp}
-                    className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Open Receipt on My WhatsApp</span>
-                    <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleCopyWhatsAppReceipt}
-                  className="px-3.5 py-2.5 rounded-xl bg-emerald-100/80 hover:bg-emerald-200 text-emerald-900 font-bold flex items-center justify-center gap-1.5 transition-colors"
-                  title="Copy full WhatsApp message"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Copy Receipt</span>
-                </button>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Digital Warranty Registration Callout */}
         <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-white to-amber-50/60 border border-amber-200/80 text-xs flex flex-col sm:flex-row items-center justify-between gap-4">

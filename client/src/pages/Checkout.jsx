@@ -38,8 +38,7 @@ import {
   Search,
   Plus,
   ChevronDown,
-  ChevronUp,
-  MessageSquare
+  ChevronUp
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Tesseract from 'tesseract.js';
@@ -49,12 +48,6 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { lookupPincode, isValidPincode } from '../utils/pincodeService';
 import { isBigAppliance } from '../utils/shippingCalculator';
-import { 
-  normalizeWhatsAppPhone, 
-  isValidWhatsAppNumber, 
-  openWhatsAppDirect, 
-  formatOrderWhatsAppMessage 
-} from '../utils/whatsappUtils';
 
 const Checkout = () => {
   const { cart, clearCart, syncLocalCartToServer } = useCart();
@@ -133,27 +126,6 @@ const Checkout = () => {
   const [showAllAreas, setShowAllAreas] = useState(false);
   const [customAreaInput, setCustomAreaInput] = useState('');
   const [showAddCustomArea, setShowAddCustomArea] = useState(false);
-  const [autoOpenWhatsApp, setAutoOpenWhatsApp] = useState(true);
-
-  const handleTestWhatsAppDirect = (e) => {
-    if (e) e.preventDefault();
-    if (!customerPhone || !customerPhone.trim()) {
-      showError('Please enter your mobile number first.');
-      return;
-    }
-    const normalized = normalizeWhatsAppPhone(customerPhone);
-    if (!normalized || normalized.length < 10) {
-      showError('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-    const testMsg = `Hello Kirti Store, I am confirming my mobile number (+${normalized}) for order and delivery updates.`;
-    const opened = openWhatsAppDirect(customerPhone, testMsg);
-    if (opened) {
-      showSuccess(`Opening WhatsApp chat for +${normalized}...`);
-    } else {
-      showError('Could not open WhatsApp. Please check popup permissions.');
-    }
-  };
 
   const handleSelectLocality = (loc) => {
     if (!loc) return;
@@ -640,15 +612,6 @@ const Checkout = () => {
           setIsProcessing(false);
           showSuccess('UPI payment verified & order confirmed successfully!');
 
-          // If autoOpenWhatsApp is enabled, open order receipt directly in WhatsApp
-          if (autoOpenWhatsApp && customerPhone) {
-            try {
-              openWhatsAppDirect(customerPhone, formatOrderWhatsAppMessage(res.data.order));
-            } catch (wErr) {
-              console.warn('Auto open WhatsApp note:', wErr);
-            }
-          }
-
           navigate(`/order-success/${res.data.order._id}`);
         } else {
           throw new Error(res.data.message || 'Order failed');
@@ -811,56 +774,15 @@ const Checkout = () => {
                   />
                 </div>
                 <div>
-                  <div className="flex items-center justify-between">
-                    <label className="font-semibold text-charcoal-light">Phone Number *</label>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                      📱 WhatsApp Direct
-                    </span>
-                  </div>
-                  <div className="relative mt-1.5">
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+91 9812345678"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-50/50 border border-surface-border text-charcoal font-medium focus:ring-2 focus:ring-secondary/20 focus:border-secondary focus:outline-none"
-                    />
-                    {customerPhone && customerPhone.replace(/\D/g, '').length >= 10 && (
-                      <button
-                        type="button"
-                        onClick={handleTestWhatsAppDirect}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition-all flex items-center gap-1 active:scale-95"
-                        title="Click to test opening WhatsApp chat for this number"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Test Chat</span>
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Validation feedback & Direct WhatsApp Toggle */}
-                  <div className="mt-1.5 space-y-1 text-[11px]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-emerald-700 font-medium">
-                        {normalizeWhatsAppPhone(customerPhone)
-                          ? `✓ Recipient: +${normalizeWhatsAppPhone(customerPhone)}`
-                          : 'Enter 10-digit mobile number'}
-                      </span>
-                    </div>
-
-                    <label className="flex items-center gap-2 pt-0.5 cursor-pointer text-charcoal">
-                      <input
-                        type="checkbox"
-                        checked={autoOpenWhatsApp}
-                        onChange={(e) => setAutoOpenWhatsApp(e.target.checked)}
-                        className="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
-                      />
-                      <span className="text-[11px] text-slate-600">
-                        Automatically open WhatsApp order receipt on confirmation
-                      </span>
-                    </label>
-                  </div>
+                  <label className="font-semibold text-charcoal-light">Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="+91 9812345678"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full mt-1.5 px-4 py-3 rounded-xl bg-slate-50/50 border border-surface-border text-charcoal font-medium focus:ring-2 focus:ring-secondary/20 focus:border-secondary focus:outline-none"
+                  />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="font-semibold text-charcoal-light">Email Address (for order tracking & invoice) *</label>

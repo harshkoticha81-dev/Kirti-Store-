@@ -204,11 +204,6 @@ exports.createOrder = async (req, res, next) => {
       await cart.save();
     }
 
-    // Trigger automated WhatsApp Order Confirmation Alert
-    whatsappService.sendOrderConfirmation(order).catch(err => {
-      console.warn('[WhatsApp] Order confirmation alert warning:', err.message);
-    });
-
     res.status(201).json({
       success: true,
       message: 'Order placed successfully!',
