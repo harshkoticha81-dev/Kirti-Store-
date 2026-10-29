@@ -41,7 +41,7 @@ const DHORAJI_HEADQUARTERS = {
   whatsapp: '919428282008',
   email: 'support@kirtistore.com',
   coordinates: { lat: 21.7345, lng: 70.4503 },
-  googleMapsUrl: 'https://maps.google.com/?q=Kirti+Store+Main+Bazar+Opp+Nandkurba+Hospital+Dhoraji+Gujarat+360410',
+  googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Kirti+Store%2C+Main+Bazar%2C+Opp.+Nandkurba+Hospital%2C+Dhoraji+-+360410%2C+Gujarat',
   operatingHours: {
     openTime: '10:00 AM',
     closeTime: '08:00 PM',
@@ -258,10 +258,11 @@ const StoreLocator = () => {
 
   // Build embedded Google Maps URL for Dhoraji Headquarters
   const googleMapsEmbedUrl = useMemo(() => {
-    const query = `${store.coordinates.lat},${store.coordinates.lng}`;
+    // Authoritative store search query guaranteeing exact store placement matching the navigation
+    const query = store.address || 'Kirti Store, Main Bazar, Opp. Nandkurba Hospital, Dhoraji - 360410, Gujarat';
     const tParam = mapType === 'satellite' ? 'k' : 'm';
-    return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=${tParam}&z=16&ie=UTF8&iwloc=&output=embed`;
-  }, [store, mapType]);
+    return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=${tParam}&z=17&ie=UTF8&iwloc=&output=embed`;
+  }, [store.address, mapType]);
 
   const liveStatus = getStoreLiveStatus(store);
 
@@ -529,7 +530,7 @@ const StoreLocator = () => {
                   </button>
 
                   <a
-                    href={store.googleMapsUrl}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.address || 'Kirti Store, Main Bazar, Opp. Nandkurba Hospital, Dhoraji - 360410, Gujarat')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-colors"

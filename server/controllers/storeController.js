@@ -18,7 +18,7 @@ const DEFAULT_STORES = [
     whatsapp: '919428282008',
     email: 'support@kirtistore.com',
     coordinates: { lat: 21.7345, lng: 70.4503 },
-    googleMapsUrl: 'https://maps.google.com/?q=Kirti+Store+Main+Bazar+Opp+Nandkurba+Hospital+Dhoraji+Gujarat+360410',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Kirti+Store%2C+Main+Bazar%2C+Opp.+Nandkurba+Hospital%2C+Dhoraji+-+360410%2C+Gujarat',
     operatingHours: {
       openTime: '10:00 AM',
       closeTime: '08:00 PM',
