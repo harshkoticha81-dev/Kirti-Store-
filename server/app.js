@@ -2,7 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const compression = require('compression');
 const path = require('path');
+const fs = require('fs');
 
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
@@ -19,6 +21,7 @@ const pincodeRoutes = require('./routes/pincodeRoutes');
 const warrantyRoutes = require('./routes/warrantyRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const storeRoutes = require('./routes/storeRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
@@ -26,6 +29,9 @@ const app = express();
 app.use(helmet({
   crossOriginResourcePolicy: false // Allows client to load images
 }));
+
+// High-speed response compression (Gzip/Brotli)
+app.use(compression());
 
 // CORS Configuration
 const clientUrl = (process.env.CLIENT_URL || '').replace(/\/+$/, '');
@@ -138,6 +144,7 @@ app.use('/api/pincode', pincodeRoutes);
 app.use('/api/warranty', warrantyRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/stores', storeRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Error Handling
 app.use(notFound);

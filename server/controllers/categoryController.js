@@ -1,6 +1,16 @@
 const Category = require('../models/Category');
 const Product = require('../models/Product');
 
+// In-memory cache for ultra-fast category lookups
+let cachedCategories = null;
+let lastCacheTime = 0;
+const CACHE_TTL = 120000; // 2 minutes
+
+const invalidateCategoryCache = () => {
+  cachedCategories = null;
+  lastCacheTime = 0;
+};
+
 const slugify = (text) => {
   return text
     .toString()
@@ -16,30 +26,58 @@ const slugify = (text) => {
 // @access  Public
 exports.getCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find({ status: 'active' }).sort({ name: 1 });
+    const now = Date.now();
+    if (cachedCategories && (now - lastCacheTime < CACHE_TTL)) {
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      return res.status(200).json({
+        success: true,
+        count: cachedCategories.length,
+        categories: cachedCategories
+      });
+    }
 
-    // Count products per category and resolve active image
-    const categoriesWithCount = await Promise.all(
-      categories.map(async (cat) => {
-        const count = await Product.countDocuments({ category: cat._id, status: 'active' });
-        let image = cat.image;
+    const categories = await Category.find({ status: 'active' }).sort({ name: 1 }).lean();
 
-        // If category image is missing or an old duplicate placeholder, use active product image
-        if (!image || image.includes('photo-1570222094114-d054a817e56b') || image.includes('photo-1583743814966-8936f5b7be1a')) {
-          const sampleProd = await Product.findOne({ category: cat._id, status: 'active' }).sort({ updatedAt: -1 });
-          if (sampleProd && sampleProd.images && sampleProd.images[0]) {
-            image = sampleProd.images[0];
-          }
-        }
+    // Fetch product counts grouped by category in ONE single query
+    const productStats = await Product.aggregate([
+      { $match: { status: 'active' } },
+      { 
+        $group: { 
+          _id: '$category', 
+          count: { $sum: 1 },
+          latestImage: { $first: { $arrayElemAt: ['$images', 0] } }
+        } 
+      }
+    ]);
 
-        return {
-          ...cat.toObject(),
-          image: image || cat.image,
-          productCount: count
+    const statMap = {};
+    for (const stat of productStats) {
+      if (stat._id) {
+        statMap[stat._id.toString()] = {
+          count: stat.count,
+          image: stat.latestImage
         };
-      })
-    );
+      }
+    }
 
+    const categoriesWithCount = categories.map((cat) => {
+      const stats = statMap[cat._id.toString()] || { count: 0, image: null };
+      let image = cat.image;
+      if (!image || image.includes('photo-1570222094114-d054a817e56b') || image.includes('photo-1583743814966-8936f5b7be1a')) {
+        image = stats.image || cat.image || '';
+      }
+
+      return {
+        ...cat,
+        image: image || cat.image,
+        productCount: stats.count
+      };
+    });
+
+    cachedCategories = categoriesWithCount;
+    lastCacheTime = now;
+
+    res.setHeader('Cache-Control', 'public, max-age=60');
     res.status(200).json({
       success: true,
       count: categoriesWithCount.length,
@@ -81,6 +119,8 @@ exports.createCategory = async (req, res, next) => {
       status: status || 'active'
     });
 
+    invalidateCategoryCache();
+
     res.status(201).json({
       success: true,
       message: 'Category created successfully.',
@@ -116,6 +156,7 @@ exports.updateCategory = async (req, res, next) => {
     if (status !== undefined) category.status = status;
 
     await category.save();
+    invalidateCategoryCache();
 
     res.status(200).json({
       success: true,
@@ -151,6 +192,7 @@ exports.deleteCategory = async (req, res, next) => {
     }
 
     await Category.findByIdAndDelete(id);
+    invalidateCategoryCache();
 
     res.status(200).json({
       success: true,

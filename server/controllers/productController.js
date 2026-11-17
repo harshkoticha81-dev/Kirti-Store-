@@ -6,6 +6,16 @@ const InventoryTransaction = require('../models/InventoryTransaction');
 const pushNotificationService = require('../services/pushNotificationService');
 const { isBigAppliance } = require('../utils/shippingCalculator');
 
+// In-memory cache for ultra-fast featured products response
+let featuredProductsCache = null;
+let featuredProductsCacheTime = 0;
+const FEATURED_CACHE_TTL = 60000; // 60s
+
+const invalidateProductCache = () => {
+  featuredProductsCache = null;
+  featuredProductsCacheTime = 0;
+};
+
 // Helper to safely process and persist images (resolves base64 data URIs to files in MongoDB & uploads folder, filters empty strings)
 const processProductImages = async (imagesArray) => {
   if (!imagesArray) {
@@ -194,22 +204,27 @@ exports.getProducts = async (req, res, next) => {
     const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
 
-    const total = await Product.countDocuments(query);
-    const products = await Product.find(query)
-      .populate('category', 'name slug')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limitNum);
+    // Concurrently fetch total count and paginated products with lean projection
+    const [total, products] = await Promise.all([
+      Product.countDocuments(query),
+      Product.find(query)
+        .select('name slug SKU category categoryName brand shortDescription sellingPrice originalPrice stockQuantity images rating numReviews isFeatured packageSize isSparePart compatibleModels')
+        .populate('category', 'name slug')
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limitNum)
+        .lean()
+    ]);
 
     // Clean out any legacy default placeholder image
     const sanitizedProducts = products.map(prod => {
-      const pObj = prod.toObject ? prod.toObject() : prod;
-      if (Array.isArray(pObj.images)) {
-        pObj.images = pObj.images.filter(img => typeof img === 'string' && !img.includes('photo-1570222094114-d054a817e56b'));
+      if (Array.isArray(prod.images)) {
+        prod.images = prod.images.filter(img => typeof img === 'string' && !img.includes('photo-1570222094114-d054a817e56b'));
       }
-      return pObj;
+      return prod;
     });
 
+    res.setHeader('Cache-Control', 'public, max-age=30');
     res.status(200).json({
       success: true,
       count: sanitizedProducts.length,
@@ -228,19 +243,34 @@ exports.getProducts = async (req, res, next) => {
 // @access  Public
 exports.getFeaturedProducts = async (req, res, next) => {
   try {
+    const now = Date.now();
+    if (featuredProductsCache && (now - featuredProductsCacheTime < FEATURED_CACHE_TTL)) {
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      return res.status(200).json({
+        success: true,
+        count: featuredProductsCache.length,
+        products: featuredProductsCache
+      });
+    }
+
     const products = await Product.find({ status: 'active', isFeatured: true })
+      .select('name slug SKU category categoryName brand shortDescription sellingPrice originalPrice stockQuantity images rating numReviews isFeatured packageSize')
       .populate('category', 'name slug')
       .limit(8)
-      .sort({ rating: -1, createdAt: -1 });
+      .sort({ rating: -1, createdAt: -1 })
+      .lean();
 
     const sanitizedProducts = products.map(prod => {
-      const pObj = prod.toObject ? prod.toObject() : prod;
-      if (Array.isArray(pObj.images)) {
-        pObj.images = pObj.images.filter(img => typeof img === 'string' && !img.includes('photo-1570222094114-d054a817e56b'));
+      if (Array.isArray(prod.images)) {
+        prod.images = prod.images.filter(img => typeof img === 'string' && !img.includes('photo-1570222094114-d054a817e56b'));
       }
-      return pObj;
+      return prod;
     });
 
+    featuredProductsCache = sanitizedProducts;
+    featuredProductsCacheTime = now;
+
+    res.setHeader('Cache-Control', 'public, max-age=60');
     res.status(200).json({
       success: true,
       count: sanitizedProducts.length,
@@ -433,6 +463,8 @@ exports.createProduct = async (req, res, next) => {
       });
     }
 
+    invalidateProductCache();
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully!',
@@ -543,6 +575,7 @@ exports.updateProduct = async (req, res, next) => {
     if (req.body.partNumber !== undefined) product.partNumber = req.body.partNumber;
 
     await product.save();
+    invalidateProductCache();
 
     res.status(200).json({
       success: true,
@@ -583,6 +616,7 @@ exports.updateProductPrice = async (req, res, next) => {
     }
 
     await product.save();
+    invalidateProductCache();
 
     res.status(200).json({
       success: true,
@@ -694,6 +728,8 @@ exports.updateProductStock = async (req, res, next) => {
       });
     }
 
+    invalidateProductCache();
+
     res.status(200).json({
       success: true,
       message: `Stock for "${product.name}" updated from ${previousQuantity} to ${newQuantity}.`,
@@ -729,6 +765,7 @@ exports.deleteProduct = async (req, res, next) => {
 
     // Soft delete or delete document
     await Product.findByIdAndDelete(id);
+    invalidateProductCache();
 
     res.status(200).json({
       success: true,

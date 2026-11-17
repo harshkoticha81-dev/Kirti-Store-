@@ -38,7 +38,8 @@ import {
   Search,
   Plus,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Wallet
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Tesseract from 'tesseract.js';
@@ -49,6 +50,7 @@ import { useToast } from '../context/ToastContext';
 import { lookupPincode, isValidPincode } from '../utils/pincodeService';
 import { isBigAppliance } from '../utils/shippingCalculator';
 import { getSafeProductImageUrl } from '../utils/imageUtils';
+import { loadRazorpayScript } from '../utils/razorpayUtils';
 
 const Checkout = () => {
   const { cart, clearCart, syncLocalCartToServer } = useCart();
@@ -58,6 +60,9 @@ const Checkout = () => {
 
   // Active step: 'address' (Step 1) -> 'gateway' (Step 2: Payment Gateway & Review)
   const [currentStep, setCurrentStep] = useState('address');
+
+  // Payment Method Selection: 'razorpay' (Recommended Gateway) | 'upi_qr' (Direct UPI QR)
+  const [paymentGateway, setPaymentGateway] = useState('razorpay');
 
   // Customer Contact Info
   const [customerName, setCustomerName] = useState(user?.name || '');
@@ -490,6 +495,190 @@ const Checkout = () => {
     setCopiedVpa(true);
     showSuccess(`Copied UPI ID "${MERCHANT_VPA}" to clipboard!`);
     setTimeout(() => setCopiedVpa(false), 2500);
+  };
+
+  // Razorpay Gateway Checkout & Signature Verification
+  const handleRazorpayPayment = async () => {
+    // Validate delivery details
+    if (!shippingAddress.street?.trim() || !shippingAddress.city?.trim() || !shippingAddress.postalCode?.trim()) {
+      showError('Please provide a complete shipping address (street, city, pincode).');
+      setCurrentStep('address');
+      return;
+    }
+    if (!customerPhone?.trim()) {
+      showError('Please provide a valid contact phone number.');
+      setCurrentStep('address');
+      return;
+    }
+
+    // Sync any local cart items to MongoDB server cart if authenticated
+    if (isAuthenticated) {
+      try {
+        await syncLocalCartToServer();
+      } catch (e) {
+        console.warn('Sync error:', e);
+      }
+    }
+
+    setIsProcessing(true);
+    setProcessingStage(1);
+    setProcessingMessage('Initializing Razorpay 256-Bit SSL Encrypted Checkout...');
+
+    try {
+      // 1. Ensure Razorpay SDK script is ready
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded && typeof window.Razorpay === 'undefined') {
+        throw new Error('Razorpay SDK failed to load. Please check your internet connection.');
+      }
+
+      // 2. Request backend order creation
+      const { data: rzpData } = await api.post('/payment/razorpay/create-order', {
+        amount: finalPayable,
+        receipt: `kirti_${Date.now()}`,
+        notes: {
+          customerName: customerName || user?.name || 'Customer',
+          customerEmail: customerEmail || user?.email || '',
+          customerPhone: customerPhone || user?.phone || '',
+          pincode: shippingAddress.postalCode
+        }
+      });
+
+      if (!rzpData.success) {
+        throw new Error(rzpData.message || 'Could not initiate Razorpay order.');
+      }
+
+      // Helper to submit confirmed order to MongoDB backend
+      const finalizeRazorpayOrder = async (rzpOrderId, rzpPaymentId, rzpSignature, modeLabel = '') => {
+        const orderPayload = {
+          customerName: customerName ? customerName.trim() : undefined,
+          customerEmail: customerEmail ? customerEmail.trim() : undefined,
+          customerPhone: customerPhone ? customerPhone.trim() : undefined,
+          items: cart.items.map(it => ({
+            product: it.product?._id || it.product,
+            quantity: it.quantity || 1,
+            price: it.product?.sellingPrice || it.price,
+            name: it.product?.name,
+            image: it.product?.image,
+            SKU: it.product?.SKU
+          })),
+          shippingAddress: {
+            street: shippingAddress.street,
+            apartment: shippingAddress.apartment || '',
+            city: shippingAddress.city,
+            state: shippingAddress.state || 'Gujarat',
+            postalCode: shippingAddress.postalCode,
+            country: 'India',
+            phone: customerPhone ? customerPhone.trim() : undefined,
+          },
+          paymentMethod: 'Razorpay',
+          razorpayOrderId: rzpOrderId,
+          razorpayPaymentId: rzpPaymentId,
+          razorpaySignature: rzpSignature,
+          notes: `${notes ? notes + ' | ' : ''}Payment Method: Razorpay Online Gateway${modeLabel ? ` (${modeLabel})` : ''} | Payment ID: ${rzpPaymentId}${appliedCoupon ? ` (Coupon: ${appliedCoupon})` : ''}`,
+        };
+
+        const res = await api.post('/orders', orderPayload);
+        if (res.data.success) {
+          await clearCart();
+          setIsProcessing(false);
+          showSuccess('Payment authorized & order confirmed successfully!');
+          navigate(`/order-success/${res.data.order._id}`);
+        } else {
+          throw new Error(res.data.message || 'Order confirmation failed');
+        }
+      };
+
+      // 3. Fallback test simulation if running with placeholder test keys
+      if (rzpData.isSimulated || !window.Razorpay) {
+        setProcessingStage(2);
+        setProcessingMessage('Simulating Razorpay Payment Gateway (Dev / Test Mode)...');
+
+        setTimeout(() => {
+          setProcessingStage(3);
+          setProcessingMessage('Authorizing simulated card/UPI transaction with test bank...');
+        }, 1200);
+
+        setTimeout(async () => {
+          try {
+            const mockPaymentId = `pay_sim_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+            await finalizeRazorpayOrder(rzpData.orderId, mockPaymentId, 'simulated_dev_signature', 'Test / Sandbox Mode');
+          } catch (simErr) {
+            setIsProcessing(false);
+            showError(simErr.response?.data?.message || simErr.message || 'Order failed during simulation.');
+          }
+        }, 2500);
+        return;
+      }
+
+      // 4. Launch Live Razorpay Checkout Modal
+      const options = {
+        key: rzpData.keyId,
+        amount: rzpData.amount,
+        currency: rzpData.currency || 'INR',
+        name: 'Kirti Store',
+        description: `Purchase of ${cart.itemCount} kitchen appliance${cart.itemCount > 1 ? 's' : ''}`,
+        image: '/favicon.png',
+        order_id: rzpData.orderId,
+        handler: async function (response) {
+          try {
+            setIsProcessing(true);
+            setProcessingStage(2);
+            setProcessingMessage('Verifying cryptographic HMAC-SHA256 signature with Razorpay...');
+
+            // Verify signature on backend
+            const verifyRes = await api.post('/payment/razorpay/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+
+            if (!verifyRes.data.success) {
+              throw new Error(verifyRes.data.message || 'Payment signature verification failed.');
+            }
+
+            setProcessingStage(3);
+            setProcessingMessage('Payment Authorized! Updating Kirti Store inventory & generating invoice...');
+
+            await finalizeRazorpayOrder(
+              response.razorpay_order_id,
+              response.razorpay_payment_id,
+              response.razorpay_signature,
+              'Verified Live'
+            );
+          } catch (verErr) {
+            setIsProcessing(false);
+            showError(verErr.response?.data?.message || verErr.message || 'Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          name: customerName || user?.name || '',
+          email: customerEmail || user?.email || '',
+          contact: customerPhone || user?.phone || ''
+        },
+        theme: {
+          color: '#0f172a'
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false);
+            showError('Payment window closed. You can retry anytime or choose another payment method.');
+          }
+        }
+      };
+
+      const rzpInstance = new window.Razorpay(options);
+      rzpInstance.on('payment.failed', function (resp) {
+        setIsProcessing(false);
+        showError(resp.error?.description || 'Payment transaction failed. Please try again or use another payment option.');
+      });
+
+      setIsProcessing(false);
+      rzpInstance.open();
+
+    } catch (err) {
+      setIsProcessing(false);
+      showError(err.response?.data?.message || err.message || 'Unable to open Razorpay payment gateway.');
+    }
   };
 
   // Bank Authorization & Order Placement
@@ -1307,6 +1496,230 @@ const Checkout = () => {
                 </div>
               </div>
 
+              {/* Payment Gateway Mode Selector */}
+              <div className="bg-slate-100 p-2.5 border-b border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentGateway('razorpay')}
+                    className={`relative p-3.5 rounded-2xl flex items-center gap-3 transition-all text-left cursor-pointer border ${
+                      paymentGateway === 'razorpay'
+                        ? 'bg-white border-primary shadow-sm text-primary ring-2 ring-primary/10'
+                        : 'bg-white/60 border-slate-200 text-charcoal hover:bg-white'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${paymentGateway === 'razorpay' ? 'bg-primary text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-sm">Razorpay Secure</span>
+                        <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 rounded-full">
+                          Recommended
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-charcoal-light truncate">Cards, 50+ Banks NetBanking, UPI, Wallets</p>
+                    </div>
+                    {paymentGateway === 'razorpay' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentGateway('upi_qr')}
+                    className={`relative p-3.5 rounded-2xl flex items-center gap-3 transition-all text-left cursor-pointer border ${
+                      paymentGateway === 'upi_qr'
+                        ? 'bg-white border-secondary shadow-sm text-primary ring-2 ring-secondary/10'
+                        : 'bg-white/60 border-slate-200 text-charcoal hover:bg-white'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${paymentGateway === 'upi_qr' ? 'bg-secondary text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+                      <QrCode className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-sm">Direct UPI QR</span>
+                        <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-sky-100 text-sky-800 rounded-full">
+                          Zero Fees
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-charcoal-light truncate">Scan via Google Pay, PhonePe, Paytm</p>
+                    </div>
+                    {paymentGateway === 'upi_qr' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
+                  </button>
+                </div>
+              </div>
+
+              {paymentGateway === 'razorpay' ? (
+                <div className="p-6 sm:p-8 space-y-6">
+                  {/* Trust & Guarantee Banner */}
+                  <div className="bg-gradient-to-r from-emerald-500/10 via-sky-500/10 to-indigo-500/10 border border-emerald-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <ShieldCheck className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                          <span>Razorpay Trusted Payment Gateway</span>
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">
+                            Instant Verification
+                          </span>
+                        </h4>
+                        <p className="text-xs text-charcoal-light">
+                          Fast-track instant authorization with automated settlement and digital GST invoice.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-700 bg-white/80 px-3 py-1.5 rounded-xl border border-slate-200 self-stretch sm:self-auto text-center shadow-xs">
+                      PCI-DSS Level 1 Certified
+                    </span>
+                  </div>
+
+                  {/* Supported Payment Channels Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* 1. Debit & Credit Cards */}
+                    <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-slate-900 font-extrabold text-sm">
+                          <CreditCard className="w-4 h-4 text-primary" />
+                          <span>Debit & Credit Cards</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          All Major Cards
+                        </span>
+                      </div>
+                      <p className="text-xs text-charcoal-light">
+                        Visa, MasterCard, RuPay, Maestro, Diners Club & American Express with 3D Secure OTP.
+                      </p>
+                      <div className="flex items-center gap-1.5 pt-1 text-[11px] font-bold text-slate-600 flex-wrap">
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Visa</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">MasterCard</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">RuPay</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Amex</span>
+                      </div>
+                    </div>
+
+                    {/* 2. Instant UPI Apps */}
+                    <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-slate-900 font-extrabold text-sm">
+                          <Smartphone className="w-4 h-4 text-secondary" />
+                          <span>UPI Apps & ID</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-secondary bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+                          Auto-Approve
+                        </span>
+                      </div>
+                      <p className="text-xs text-charcoal-light">
+                        Google Pay, PhonePe, Paytm, CRED, Amazon Pay UPI & any banking app with instant collect.
+                      </p>
+                      <div className="flex items-center gap-1.5 pt-1 text-[11px] font-bold text-slate-600 flex-wrap">
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Google Pay</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">PhonePe</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Paytm</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">CRED</span>
+                      </div>
+                    </div>
+
+                    {/* 3. Net Banking */}
+                    <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-slate-900 font-extrabold text-sm">
+                          <Building2 className="w-4 h-4 text-indigo-600" />
+                          <span>Net Banking</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                          50+ Indian Banks
+                        </span>
+                      </div>
+                      <p className="text-xs text-charcoal-light">
+                        Direct secure login with HDFC, ICICI, SBI, Axis, Kotak, BOB, PNB and all nationalized banks.
+                      </p>
+                      <div className="flex items-center gap-1.5 pt-1 text-[11px] font-bold text-slate-600 flex-wrap">
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">SBI</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">HDFC</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">ICICI</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Axis</span>
+                      </div>
+                    </div>
+
+                    {/* 4. Wallets & EMI */}
+                    <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-slate-900 font-extrabold text-sm">
+                          <Wallet className="w-4 h-4 text-amber-600" />
+                          <span>Wallets & Pay Later</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                          Flexible Options
+                        </span>
+                      </div>
+                      <p className="text-xs text-charcoal-light">
+                        PayTM Wallet, Mobikwik, Amazon Pay, Simpl PayLater and low-cost EMI on eligible cards.
+                      </p>
+                      <div className="flex items-center gap-1.5 pt-1 text-[11px] font-bold text-slate-600 flex-wrap">
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">PayTM</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Amazon Pay</span>
+                        <span className="bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Mobikwik</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Razorpay Benefits Checklist */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <h5 className="font-extrabold text-xs text-slate-900 uppercase tracking-wider">
+                      Razorpay Guaranteed Checkout Benefits
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <span>Instant real-time payment confirmation</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <span>Automatic GST tax invoice generation</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <span>Zero manual screenshot or UTR submission</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <span>100% Buyer Protection & Refund guarantee</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Razorpay CTA Action */}
+                  <div className="pt-6 border-t border-surface-border space-y-3">
+                    <button
+                      type="button"
+                      onClick={handleRazorpayPayment}
+                      disabled={isProcessing}
+                      className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-base rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-60"
+                    >
+                      <Lock className="w-5 h-5 text-white" />
+                      <span>
+                        Pay ₹{finalPayable.toLocaleString('en-IN')} with Razorpay
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center justify-center gap-3 sm:gap-4 text-[10px] text-charcoal-light text-center flex-wrap">
+                      <span className="flex items-center gap-1 font-bold text-slate-700">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        Powered by Razorpay
+                      </span>
+                      <span>•</span>
+                      <span>256-Bit SSL Encrypted</span>
+                      <span>•</span>
+                      <span>RBI Licensed Payment Aggregator</span>
+                      <span>•</span>
+                      <span>Zero Processing Surcharge</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
               {/* Only UPI QR Code Notice Banner */}
               <div className="bg-sky-50 border-b border-sky-100 px-6 py-3 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 text-sky-900 font-semibold">
@@ -1670,6 +2083,8 @@ const Checkout = () => {
                   </div>
 
                 </div>
+              </>
+              )}
 
             </div>
 

@@ -96,6 +96,8 @@ const OrderSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     enum: [
+      'Razorpay',
+      'Online Payment (Razorpay)',
       'Cash on Delivery',
       'COD',
       'Online Payment',
@@ -104,7 +106,7 @@ const OrderSchema = new mongoose.Schema({
       'UPI - QR Code',
       'UPI - VPA'
     ],
-    default: 'UPI'
+    default: 'Razorpay'
   },
   paymentStatus: {
     type: String,
@@ -114,6 +116,21 @@ const OrderSchema = new mongoose.Schema({
   paymentId: {
     type: String,
     default: ''
+  },
+  razorpayOrderId: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  razorpayPaymentId: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  razorpaySignature: {
+    type: String,
+    default: '',
+    trim: true
   },
   upiTransactionId: {
     type: String,

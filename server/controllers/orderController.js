@@ -19,13 +19,16 @@ exports.createOrder = async (req, res, next) => {
   try {
     const {
       shippingAddress,
-      paymentMethod = 'UPI',
+      paymentMethod = 'Razorpay',
       notes = '',
       customerName,
       customerEmail,
       customerPhone,
       upiTransactionId = '',
-      paymentScreenshot = ''
+      paymentScreenshot = '',
+      razorpayOrderId = '',
+      razorpayPaymentId = '',
+      razorpaySignature = ''
     } = req.body;
 
     const postalCode = (shippingAddress?.postalCode || shippingAddress?.pincode || '').trim();
@@ -154,8 +157,12 @@ exports.createOrder = async (req, res, next) => {
 
     const trimmedUpiTxnId = (upiTransactionId && typeof upiTransactionId === 'string') ? upiTransactionId.trim() : '';
     const cleanScreenshot = (paymentScreenshot && typeof paymentScreenshot === 'string') ? paymentScreenshot.trim() : '';
-    const upiRef = `UPI_${Date.now()}_${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-    const finalPaymentId = trimmedUpiTxnId || upiRef;
+    const cleanRzpPaymentId = (razorpayPaymentId && typeof razorpayPaymentId === 'string') ? razorpayPaymentId.trim() : '';
+    const cleanRzpOrderId = (razorpayOrderId && typeof razorpayOrderId === 'string') ? razorpayOrderId.trim() : '';
+    const cleanRzpSignature = (razorpaySignature && typeof razorpaySignature === 'string') ? razorpaySignature.trim() : '';
+
+    const defaultPaymentRef = `PAY_${Date.now()}_${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+    const finalPaymentId = cleanRzpPaymentId || trimmedUpiTxnId || defaultPaymentRef;
 
     // Evaluate RTO (Return to Origin) Risk based on address, pincode, phone and payment proof
     let pastDelivered = 0;
@@ -208,6 +215,9 @@ exports.createOrder = async (req, res, next) => {
       paymentMethod,
       paymentStatus,
       paymentId: finalPaymentId,
+      razorpayOrderId: cleanRzpOrderId,
+      razorpayPaymentId: cleanRzpPaymentId,
+      razorpaySignature: cleanRzpSignature,
       upiTransactionId: trimmedUpiTxnId,
       paymentScreenshot: cleanScreenshot,
       orderStatus: 'Confirmed',
